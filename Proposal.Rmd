@@ -35,8 +35,10 @@ EXPLORATORY ANALYSIS:
 
 
 ```{r}
-nbaper36 <- read_csv("nbaper36.csv")
-nbaper36 = nbaper36 %>% mutate(MP = MP/G)
+nbaper36 <- read_csv("nbaper36.csv") #reads in csv
+totplayers = as.list(nbaper36 %>% filter(Tm == "TOT") %>% select(Player))#list of players on multiple teams in season
+nbaper36 = nbaper36 %>% mutate(MP = MP/G) %>% filter(G > 41) %>% filter(!(Player %in% totplayers$Player & Tm != "TOT")) #mutates MP to reflect minutes played per game, filters for players who played >41 games, and removes player entries that are not season totals
+
 
 ```
 
