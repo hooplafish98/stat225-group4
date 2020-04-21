@@ -16,14 +16,26 @@ output:
 
 ```{r, setup, include=FALSE}
 require(mosaic)   # Load additional packages here 
+library(readr)
 knitr::opts_chunk$set(
   tidy=FALSE,     # display code as typed
   size="small")   # slightly smaller font for code
 ```
 
-Delete this sentence and enter your text here.
+GROUP: Group 4
+MEMBERS: Vignesh Mahalingam, Brandon Wang, Arjie Nanda
+TITLE: Predicting Player Minutes based on Box Score Statistics
+PURPOSE: We plan on predicting minutes played through the other types of basketball statistics. Minutes played is a valuable stat because it keeps track of how often a player is on the court. More minutes played gives players more time to contribute to the game. We will use a combination of both counting stats and rate stats. We hypothesize that the counting stats will be positively correlated with minutes played, while the rate stats should have no relationship. It is certainly possible that players who have higher rate stats, like three point percentage, are more valuable and will play more minutes as a result. On the other hand, players who play fewer minutes could have better rates due to the increased variability in a smaller sample. 
+DATA: We are using the per 36 player data from the NBA’s 2018-19 season, which can be found at https://www.basketball-reference.com/leagues/NBA_2019_per_minute.html . This data is taken from the NBA’s own statistics page, and is a widely used industry source. Per 36 refers to adjusting the player’s statistics to project what their stats would be if the player played 36 minutes per game. We will be using the per 36 data as it provides a good insight into a player’s productivity without interference from the number of minutes played by the player.  
+POPULATION: The individual population units are players with a minimum of 41 games played, which is half the season. We’re trying to generalize this to future NBA seasons, as a method of estimating the average number of minutes played by a given player. We believe there are around 240 such players in the league.
+
+RESPONSE VARIABLE(S): The number of minutes played per game. Self-evidently, this statistic is recorded in minutes. We know the range for this value stretches from 1 to around 45, although both extremes will be rare. This is because a regulation NBA game lasts for 48 minutes, but overtime can also play a role in inflating player minutes. The dataset provided does not have minutes played per game, instead having minutes played for the total season. We will create our response variable by dividing the number of minutes played by the number of games played.
+EXPLANATORY VARIABLES: All variables are measured by official NBA scorekeepers at the games.  Total rebounds in a 36 minute time period: This is the total offensive and defensive rebounds in a 36 minute time period. The unit is rebounds. Total blocks per 36 minutes, the unit is blocks.  Turnovers per 36 mins, the unit is turnovers. Free throw attempts per 36 min time period, the unit is free throw attempts. Points per 36 minutes, the unit is points.  Field goal percentage per game, the unit is percentage.
+EXPLORATORY ANALYSIS:
+
 
 ```{r}
-
+nbaper36 <- read_csv("nbaper36.csv")
+View(nbaper36)
 ```
 
