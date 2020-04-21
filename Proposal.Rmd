@@ -36,6 +36,7 @@ EXPLORATORY ANALYSIS:
 
 ```{r}
 nbaper36 <- read_csv("nbaper36.csv")
-View(nbaper36)
+nbaper36 = nbaper36 %>% mutate(MP = MP/G)
+
 ```
 
