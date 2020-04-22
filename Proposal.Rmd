@@ -42,6 +42,6 @@ totplayers = as.list(nbaper36 %>% filter(Tm == "TOT") %>% select(Player))#list o
 nbaper36 = nbaper36 %>% mutate(MP = MP/G) %>% filter(G > 41) %>% filter(!(Player %in% totplayers$Player & Tm != "TOT")) #mutates MP to reflect minutes played per game, filters for players who played >41 games, and removes player entries that are not season totals
 nbaper36select = select(nbaper36, Player, MP, TRB, BLK, TOV, FTA, PTS, 'FG%')
 
-
+GGally::ggpairs(select(nbaper36select, -Player))
 ```
 
