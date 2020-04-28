@@ -17,6 +17,7 @@ output:
 ```{r, setup, include=FALSE}
 require(mosaic)   # Load additional packages here 
 library(readr)
+library(boot) #for bootstrap
 knitr::opts_chunk$set(
   tidy=FALSE,     # display code as typed
   size="small")   # slightly smaller font for code
@@ -40,8 +41,44 @@ EXPLORATORY ANALYSIS:
 nbaper36 <- read_csv("nbaper36.csv") #reads in csv
 totplayers = as.list(nbaper36 %>% filter(Tm == "TOT") %>% select(Player))#list of players on multiple teams in season
 nbaper36 = nbaper36 %>% mutate(MP = MP/G) %>% filter(G > 41) %>% filter(!(Player %in% totplayers$Player & Tm != "TOT")) #mutates MP to reflect minutes played per game, filters for players who played >41 games, and removes player entries that are not season totals
-nbaper36select = select(nbaper36, Player, MP, TRB, BLK, TOV, FTA, PTS, 'FG%')
+nbaper36select = select(nbaper36, Player, MP, TRB, BLK, TOV, FTA, PTS, 'FT%') %>% rename(FT = 'FT%')
 
 GGally::ggpairs(select(nbaper36select, -Player))
+```
+
+```{r bootstrap}
+set.seed(1109)
+
+
+# function to obtain regression weights
+bs <- function(formula, data, indices) {
+  d <- data[indices,] # allows boot to select sample
+  fit <- lm(formula, data=d)
+  return(coef(fit))
+}
+# bootstrapping with 1000 replications
+results <- boot(data = nbaper36select, statistic=bs,
+   R=1000, formula = MP ~ TRB + BLK + TOV + FTA + PTS + FT)
+
+# view results
+results
+plot(results, index=1) # intercept
+plot(results, index=2) # TRB
+plot(results, index=3) # BLK
+plot(results, index=4) # TOV
+plot(results, index=5) # FTA
+plot(results, index=6) # PTS
+plot(results, index=7) # FT%
+
+
+
+# get 95% confidence intervals
+boot.ci(results, type="bca", index=1) # intercept
+boot.ci(results, type="bca", index=2) # TRB
+boot.ci(results, type="bca", index=3) # BLK
+boot.ci(results, type="bca", index=4) # TOV
+boot.ci(results, type="bca", index=5) # FTA
+boot.ci(results, type="bca", index=6) # PTS
+boot.ci(results, type="bca", index=7) # FT%
 ```
 
