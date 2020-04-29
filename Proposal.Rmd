@@ -41,7 +41,7 @@ EXPLORATORY ANALYSIS:
 nbaper36 <- read_csv("nbaper36.csv") #reads in csv
 totplayers = as.list(nbaper36 %>% filter(Tm == "TOT") %>% select(Player))#list of players on multiple teams in season
 nbaper36 = nbaper36 %>% mutate(MP = MP/G) %>% filter(G > 41) %>% filter(!(Player %in% totplayers$Player & Tm != "TOT")) #mutates MP to reflect minutes played per game, filters for players who played >41 games, and removes player entries that are not season totals
-nbaper36select = select(nbaper36, Player, MP, TRB, BLK, TOV, FTA, PTS, 'FT%') %>% rename(FT = 'FT%')
+nbaper36select = select(nbaper36, Player, MP, TRB, BLK, TOV, FTA, PTS, 'FG%') %>% rename(FG = 'FG%')
 
 GGally::ggpairs(select(nbaper36select, -Player))
 ```
@@ -58,7 +58,7 @@ bs <- function(formula, data, indices) {
 }
 # bootstrapping with 1000 replications
 results <- boot(data = nbaper36select, statistic=bs,
-   R=1000, formula = MP ~ TRB + BLK + TOV + FTA + PTS + FT)
+   R=1000, formula = MP ~ TRB + BLK + TOV + FTA + PTS + FG)
 
 # view results
 results
@@ -68,7 +68,7 @@ plot(results, index=3) # BLK
 plot(results, index=4) # TOV
 plot(results, index=5) # FTA
 plot(results, index=6) # PTS
-plot(results, index=7) # FT%
+plot(results, index=7) # FG%
 
 
 
@@ -79,6 +79,6 @@ boot.ci(results, type="bca", index=3) # BLK
 boot.ci(results, type="bca", index=4) # TOV
 boot.ci(results, type="bca", index=5) # FTA
 boot.ci(results, type="bca", index=6) # PTS
-boot.ci(results, type="bca", index=7) # FT%
+boot.ci(results, type="bca", index=7) # FG%
 ```
 
