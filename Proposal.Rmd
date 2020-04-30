@@ -82,3 +82,16 @@ boot.ci(results, type="bca", index=6) # PTS
 boot.ci(results, type="bca", index=7) # FG%
 ```
 
+```{r}
+#OLM
+
+model_olm = lm(data = nbaper36, MP ~ TRB + BLK + TOV + FTA + PTS + FG)
+summary(model_olm) # Only PTS is significant s
+```
+
+```{r}
+# JHM
+model_f = rfit(data = nbaper36select, MP ~ TRB + BLK + TOV + FTA + PTS + FG)
+summary(model_f)$coefficients
+```
+
