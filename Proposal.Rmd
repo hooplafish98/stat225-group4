@@ -111,13 +111,13 @@ summary(ols_mod)
 ```
 
 ```{r}
-
 #reb spline
 simp_reb <- lm(MP ~ TRB, data = nbaper36select)
 s_reb <- gam(MP ~ s(TRB), data = nbaper36select)
 AIC(simp_reb) 
 AIC(s_reb) #slightly lower aic
 ```
+
 ```{r}
 #blk spline
 simp_blk <- lm(MP ~ BLK, data = nbaper36select)
@@ -159,7 +159,6 @@ AIC(s_fg) #lower aic
 ```
 
 ```{r}
-#OLS
 
 sd(nbaper36select$MP)
 ks.test(x = resid(ols_mod), y = pnorm, mean = 0, sd = 7.23)
@@ -168,7 +167,6 @@ ks.test(x = resid(ols_mod), y = pnorm, mean = 0, sd = 7.23)
 
 ks.test(x = resid(model_f), y = pnorm, mean = 0, sd = 7.23)
 
-#GAM
 
 ks.test(x = resid(full_gam), y = pnorm, mean = 0, sd = 7.23)
 
@@ -229,10 +227,7 @@ plot6 <- ggplot(data = nbaper36select, aes(x = FG, y = MP)) +
 ```{r}
 #graphing gam
 
-<<<<<<< HEAD
-
-=======
 grid.arrange(plot1, plot2, plot3, plot4, plot5, plot6, ncol = 2)
->>>>>>> b1ff4cf350346b26ef7539ff153eef6b5f34d7b3
+
 ```
 
