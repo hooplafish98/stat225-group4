@@ -22,6 +22,7 @@ library(Rfit)
 library(ggplot2)
 library(gam)
 library(splines)
+library(gridExtra)
 knitr::opts_chunk$set(
   tidy=FALSE,     # display code as typed
   size="small")   # slightly smaller font for code
@@ -88,7 +89,6 @@ boot.ci(results, type="bca", index=7) # FG%
 
 ```{r}
 #OLM
-
 model_olm = lm(data = nbaper36, MP ~ TRB + BLK + TOV + FTA + PTS + FG)
 summary(model_olm) # Only PTS is significant s
 ```
@@ -162,16 +162,56 @@ AIC(s_fg) #lower aic
 full_gam <- gam(MP ~ s(TRB) + s(BLK) + TOV + FTA + s(PTS) + s(FG), data = nbaper36select)
 full_gam_c = predict(full_gam, type = "terms")
 full_gam_y <- fitted(full_gam)
-colnames(full_gam_c) = c("trb_pred", "blk_pred", "tov_pred", "fta_pred", "pts_pred", "fg_pred")
+nba_sub <- select(.data = nbaper36select, MP, TRB, BLK, TOV, FTA, PTS, FG)
+
 mp_m = mean(nbaper36select$MP)
+
+fullgam_plots <- cbind(nba_sub, full_gam_c, full_gam_y)
+cnn <- c(colnames(nba_sub), "trb_pred", "blk_pred", "tov_pred", "fta_pred", "pts_pred", "fg_pred")
+colnames(fullgam_plots) <- cnn
 ```
 ```{r}
-#graphing gam
-
+#creating gam plots
 plot1 <- ggplot(data = nbaper36select, aes(x = TRB, y = MP)) + 
   geom_point() + 
   geom_hline(yintercept = mp_m, linetype = 2, color = "blue") + 
-  geom_line(inherit.aes = F, size = 2, color = "gold", data = )
+  geom_line(inherit.aes = F, size = 2, color = "gold", data = fullgam_plots,
+            aes(x = TRB, y = trb_pred + mp_m))
 
+plot2 <- ggplot(data = nbaper36select, aes(x = BLK, y = MP)) + 
+  geom_point() + 
+  geom_hline(yintercept = mp_m, linetype = 2, color = "blue") + 
+  geom_line(inherit.aes = F, size = 2, color = "gold", data = fullgam_plots,
+            aes(x = BLK, y = blk_pred + mp_m))
+
+plot3 <- ggplot(data = nbaper36select, aes(x = TOV, y = MP)) + 
+  geom_point() + 
+  geom_hline(yintercept = mp_m, linetype = 2, color = "blue") + 
+  geom_line(inherit.aes = F, size = 2, color = "gold", data = fullgam_plots,
+            aes(x = TOV, y = tov_pred + mp_m))
+
+plot4 <- ggplot(data = nbaper36select, aes(x = FTA, y = MP)) + 
+  geom_point() + 
+  geom_hline(yintercept = mp_m, linetype = 2, color = "blue") + 
+  geom_line(inherit.aes = F, size = 2, color = "gold", data = fullgam_plots,
+            aes(x = FTA, y = fta_pred + mp_m))
+
+plot5 <- ggplot(data = nbaper36select, aes(x = PTS, y = MP)) + 
+  geom_point() + 
+  geom_hline(yintercept = mp_m, linetype = 2, color = "blue") + 
+  geom_line(inherit.aes = F, size = 2, color = "gold", data = fullgam_plots,
+            aes(x = PTS, y = pts_pred + mp_m))
+
+plot6 <- ggplot(data = nbaper36select, aes(x = FG, y = MP)) + 
+  geom_point() + 
+  geom_hline(yintercept = mp_m, linetype = 2, color = "blue") + 
+  geom_line(inherit.aes = F, size = 2, color = "gold", data = fullgam_plots,
+            aes(x = FG, y = fg_pred + mp_m))
+```
+
+```{r}
+#graphing gam
+
+grid.arrange(plot1, plot2, plot3, plot4, plot5, plot6, ncol = 2)
 ```
 
