@@ -107,3 +107,8 @@ ggplot(data = nbaper36select, aes(log(MP))) +
 ols_mod <- lm(MP ~ TRB + BLK + TOV + FTA + PTS + FG, data = nbaper36select)
 summary(ols_mod)
 ```
+
+```{r}
+ks.test(x = nbaper36select$MP, y = pnorm, mean = 100, sd = 15)
+```
+
