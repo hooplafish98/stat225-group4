@@ -18,6 +18,8 @@ output:
 require(mosaic)   # Load additional packages here 
 library(readr)
 library(boot) #for bootstrap
+library(Rfit)
+library(ggplot2)
 knitr::opts_chunk$set(
   tidy=FALSE,     # display code as typed
   size="small")   # slightly smaller font for code
@@ -93,5 +95,10 @@ summary(model_olm) # Only PTS is significant s
 # JHM
 model_f = rfit(data = nbaper36select, MP ~ TRB + BLK + TOV + FTA + PTS + FG)
 summary(model_f)$coefficients
+```
+
+```{r}
+ggplot(data = nbaper36select, aes(log(MP))) +
+  geom_density(bw = "SJ", kernel = "epanechnikov", size = 2)
 ```
 
