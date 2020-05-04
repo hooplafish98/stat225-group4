@@ -161,16 +161,21 @@ AIC(s_fg) #lower aic
 ```{r}
 #OLS
 
-sd(nbaper36select$MP)
-ks.test(x = resid(ols_mod), y = pnorm, mean = 0, sd = 7.23)
+sd(resid(ols_mod))
+
+ks.test(x = resid(ols_mod), y = pnorm, mean = 0, sd = 5.96654)
 
 #JHM
 
-ks.test(x = resid(model_f), y = pnorm, mean = 0, sd = 7.23)
+sd(resid(model_f))
+
+ks.test(x = resid(model_f), y = pnorm, mean = 0, sd = 5.968016)
 
 #GAM
 
-ks.test(x = resid(full_gam), y = pnorm, mean = 0, sd = 7.23)
+sd(resid(full_gam))
+
+ks.test(x = resid(full_gam), y = pnorm, mean = 0, sd = 5.670123)
 
 ```
 
