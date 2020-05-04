@@ -20,6 +20,8 @@ library(readr)
 library(boot) #for bootstrap
 library(Rfit)
 library(ggplot2)
+library(gam)
+library(splines)
 knitr::opts_chunk$set(
   tidy=FALSE,     # display code as typed
   size="small")   # slightly smaller font for code
@@ -107,3 +109,69 @@ ggplot(data = nbaper36select, aes(log(MP))) +
 ols_mod <- lm(MP ~ TRB + BLK + TOV + FTA + PTS + FG, data = nbaper36select)
 summary(ols_mod)
 ```
+
+```{r}
+#reb spline
+simp_reb <- lm(MP ~ TRB, data = nbaper36select)
+s_reb <- gam(MP ~ s(TRB), data = nbaper36select)
+AIC(simp_reb) 
+AIC(s_reb) #slightly lower aic
+```
+```{r}
+#blk spline
+simp_blk <- lm(MP ~ BLK, data = nbaper36select)
+s_blk <- gam(MP ~ s(BLK), data = nbaper36select)
+AIC(simp_blk) 
+AIC(s_blk) #slightly lower aic
+```
+
+```{r}
+#tov spline
+simp_tov <- lm(MP ~ TOV, data = nbaper36select)
+s_tov <- gam(MP ~ s(TOV), data = nbaper36select)
+AIC(simp_tov) #slightly lower aic
+AIC(s_tov)
+```
+
+```{r}
+#fta spline
+simp_fta <- lm(MP ~ FTA, data = nbaper36select)
+s_fta <- gam(MP ~ s(FTA), data = nbaper36select)
+AIC(simp_fta) #slightly lower aic
+AIC(s_fta)
+```
+
+```{r}
+#pts spline
+simp_pts <- lm(MP ~ PTS, data = nbaper36select)
+s_pts <- gam(MP ~ s(PTS), data = nbaper36select)
+AIC(simp_pts) 
+AIC(s_pts) #slightly lower aic
+```
+
+```{r}
+#fg spline
+simp_fg <- lm(MP ~ FG, data = nbaper36select)
+s_fg <- gam(MP ~ s(FG), data = nbaper36select)
+AIC(simp_fg) 
+AIC(s_fg) #lower aic
+```
+
+```{r}
+#gam
+full_gam <- gam(MP ~ s(TRB) + s(BLK) + TOV + FTA + s(PTS) + s(FG), data = nbaper36select)
+full_gam_c = predict(full_gam, type = "terms")
+full_gam_y <- fitted(full_gam)
+colnames(full_gam_c) = c("trb_pred", "blk_pred", "tov_pred", "fta_pred", "pts_pred", "fg_pred")
+mp_m = mean(nbaper36select$MP)
+```
+```{r}
+#graphing gam
+
+plot1 <- ggplot(data = nbaper36select, aes(x = TRB, y = MP)) + 
+  geom_point() + 
+  geom_hline(yintercept = mp_m, linetype = 2, color = "blue") + 
+  geom_line(inherit.aes = F, size = 2, color = "gold", data = )
+
+```
+
