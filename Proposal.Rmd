@@ -102,3 +102,8 @@ ggplot(data = nbaper36select, aes(log(MP))) +
   geom_density(bw = "SJ", kernel = "epanechnikov", size = 2)
 ```
 
+```{r}
+#ols
+ols_mod <- lm(MP ~ TRB + BLK + TOV + FTA + PTS + FG, data = nbaper36select)
+summary(ols_mod)
+```
