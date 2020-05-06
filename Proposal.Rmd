@@ -97,7 +97,14 @@ summary(model_olm) # Only PTS is significant s
 # JHM
 model_f = rfit(data = nbaper36select, MP ~ TRB + BLK + TOV + FTA + PTS + FG)
 summary(model_f)$coefficients
+simp_mod <- rfit(MP ~ PTS, data = nbaper36select)
+#drop.test(model_f, simp_mod)
+
+part_mod <- rfit(MP~ PTS + TRB, data=nbaper36select)
+drop.test(model_f, part_mod)
 ```
+
+Super high p value here... probably can drop everything except TRB and PTS.
 
 ```{r}
 ggplot(data = nbaper36select, aes(log(MP))) +
