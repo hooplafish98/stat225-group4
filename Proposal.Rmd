@@ -187,7 +187,7 @@ nba_sub <- select(.data = nbaper36select, MP, TRB, BLK, TOV, FTA, PTS, FG)
 mp_m = mean(nbaper36select$MP)
 
 fullgam_plots <- cbind(nba_sub, full_gam_c, full_gam_y)
-cnn <- c(colnames(nba_sub), "trb_pred", "blk_pred", "tov_pred", "fta_pred", "pts_pred", "fg_pred")
+cnn <- c(colnames(nba_sub), "trb_pred", "blk_pred", "tov_pred", "fta_pred", "pts_pred", "fg_pred","mp_pred")
 colnames(fullgam_plots) <- cnn
 ```
 ```{r}
@@ -235,4 +235,6 @@ plot6 <- ggplot(data = nbaper36select, aes(x = FG, y = MP)) +
 grid.arrange(plot1, plot2, plot3, plot4, plot5, plot6, ncol = 2)
 
 ```
+
+
 
