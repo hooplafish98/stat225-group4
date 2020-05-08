@@ -107,7 +107,31 @@ drop.test(model_f, part_mod)
 Super high p value here... probably can drop everything except TRB and PTS.
 
 ```{r}
-ggplot(data = nbaper36select, aes(log(MP))) +
+ggplot(data = nbaper36select, aes(MP)) +
+  geom_density(bw = "SJ", kernel = "epanechnikov", size = 2)
+
+
+ggplot(data = nbaper36select, aes(TRB)) +
+  geom_density(bw = "SJ", kernel = "epanechnikov", size = 2)
+
+
+ggplot(data = nbaper36select, aes(BLK)) +
+  geom_density(bw = "SJ", kernel = "epanechnikov", size = 2)
+
+
+ggplot(data = nbaper36select, aes(TOV)) +
+  geom_density(bw = "SJ", kernel = "epanechnikov", size = 2)
+
+
+ggplot(data = nbaper36select, aes(FTA)) +
+  geom_density(bw = "SJ", kernel = "epanechnikov", size = 2)
+
+
+ggplot(data = nbaper36select, aes(PTS)) +
+  geom_density(bw = "SJ", kernel = "epanechnikov", size = 2)
+
+
+ggplot(data = nbaper36select, aes(FG)) +
   geom_density(bw = "SJ", kernel = "epanechnikov", size = 2)
 ```
 
