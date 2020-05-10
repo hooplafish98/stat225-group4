@@ -5,29 +5,231 @@ output: ioslides_presentation
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = FALSE)
+require(mosaic)   # Load additional packages here 
+library(readr)
+library(boot) #for bootstrap
+library(Rfit)
+library(ggplot2)
+library(gam)
+library(splines)
+library(gridExtra)
 ```
 
-## R Markdown
+```{r, include=FALSE}
+#loaded the data here... not sure if we need to show this on a slide or not
 
-This is an R Markdown presentation. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
 
-When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document.
+nbaper36 <- read_csv("nbaper36.csv") #reads in csv
+totplayers = as.list(nbaper36 %>% filter(Tm == "TOT") %>% select(Player))#list of players on multiple teams in season
+nbaper36 = nbaper36 %>% mutate(MP = MP/G) %>% filter(G > 41) %>% filter(!(Player %in% totplayers$Player & Tm != "TOT")) #mutates MP to reflect minutes played per game, filters for players who played >41 games, and removes player entries that are not season totals
+nbaper36select = select(nbaper36, Player, MP, TRB, BLK, TOV, FTA, PTS, 'FG%') %>% rename(FG = 'FG%')
 
-## Slide with Bullets
-
-- Bullet 1
-- Bullet 2
-- Bullet 3
-
-## Slide with R Output
-
-```{r cars, echo = TRUE}
-summary(cars)
+GGally::ggpairs(select(nbaper36select, -Player))
 ```
 
-## Slide with Plot
 
-```{r pressure}
-plot(pressure)
+## Background/Motivations
+
+- We hope to predict minutes played through other types of basketball statistics.
+- Minutes played is valuable to keep track of because more minutes played will offer a player more opportunities to contribute to the game.
+- We looked at statistics from the 2018-2019 NBA season for players who played in at least 41 games, or half the season.
+- We converted counting stats (eg rebounds) into per 36 minute rates. These rates can provide a good insight into a player’s productivity without interference from the number of minutes played by the player.
+
+
+## Bootstrap
+
+```{r bootstrap}
+set.seed(1109)
+
+
+# function to obtain regression weights
+bs <- function(formula, data, indices) {
+  d <- data[indices,] # allows boot to select sample
+  fit <- lm(formula, data=d)
+  return(coef(fit))
+}
+# bootstrapping with 1000 replications
+results <- boot(data = nbaper36select, statistic=bs,
+   R=1000, formula = MP ~ TRB + BLK + TOV + FTA + PTS + FG)
+
+# view results
+results
+plot(results, index=1) # intercept
+plot(results, index=2) # TRB
+plot(results, index=3) # BLK
+plot(results, index=4) # TOV
+plot(results, index=5) # FTA
+plot(results, index=6) # PTS
+plot(results, index=7) # FG%
+
+
+
+# get 95% confidence intervals
+boot.ci(results, type="bca", index=1) # intercept
+boot.ci(results, type="bca", index=2) # TRB
+boot.ci(results, type="bca", index=3) # BLK
+boot.ci(results, type="bca", index=4) # TOV
+boot.ci(results, type="bca", index=5) # FTA
+boot.ci(results, type="bca", index=6) # PTS
+boot.ci(results, type="bca", index=7) # FG%
 ```
 
+
+## Kernel Density Estimation
+
+```{r kde}
+ggplot(data = nbaper36select, aes(MP)) +
+  geom_density(bw = "SJ", kernel = "epanechnikov", size = 2)
+
+
+ggplot(data = nbaper36select, aes(TRB)) +
+  geom_density(bw = "SJ", kernel = "epanechnikov", size = 2)
+
+
+ggplot(data = nbaper36select, aes(BLK)) +
+  geom_density(bw = "SJ", kernel = "epanechnikov", size = 2)
+
+
+ggplot(data = nbaper36select, aes(TOV)) +
+  geom_density(bw = "SJ", kernel = "epanechnikov", size = 2)
+
+
+ggplot(data = nbaper36select, aes(FTA)) +
+  geom_density(bw = "SJ", kernel = "epanechnikov", size = 2)
+
+
+ggplot(data = nbaper36select, aes(PTS)) +
+  geom_density(bw = "SJ", kernel = "epanechnikov", size = 2)
+
+
+ggplot(data = nbaper36select, aes(FG)) +
+  geom_density(bw = "SJ", kernel = "epanechnikov", size = 2)
+```
+
+
+## OLS multiple linear regression
+
+```{r ols}
+ols_mod <- lm(MP ~ TRB + BLK + TOV + FTA + PTS + FG, data = nbaper36select)
+summary(ols_mod)$coefficients
+```
+
+MP = 9.499 - 0.333 TRB - 0.589 BLK + 0.669 TOV
+- 0.330 FTA + 0.879 PTS + 5.492 FG
+
+
+## JHM multiple regression
+
+```{r jhm}
+model_f = rfit(data = nbaper36select, MP ~ TRB + BLK + TOV + FTA + PTS + FG)
+summary(model_f)$coefficients
+```
+
+MP = 9.710 - 0.366 TRB - 0.539 BLK + 0.677 TOV
+- 0.326 FTA + 0.903 PTS + 5.823 FG
+
+
+## Generalized additive model
+
+```{r, include = FALSE}
+#reb spline
+s_reb <- gam(MP ~ s(TRB), data = nbaper36select)
+
+#blk spline
+s_blk <- gam(MP ~ s(BLK), data = nbaper36select)
+
+#tov spline
+simp_tov <- lm(MP ~ TOV, data = nbaper36select)
+
+#fta spline
+simp_fta <- lm(MP ~ FTA, data = nbaper36select)
+
+#pts spline
+s_pts <- gam(MP ~ s(PTS), data = nbaper36select)
+
+#fg spline
+s_fg <- gam(MP ~ s(FG), data = nbaper36select)
+```
+
+```{r, include = FALSE}
+#gam
+full_gam <- gam(MP ~ s(TRB) + s(BLK) + TOV + FTA + s(PTS) + s(FG), data = nbaper36select)
+full_gam_c = predict(full_gam, type = "terms")
+full_gam_y <- fitted(full_gam)
+nba_sub <- select(.data = nbaper36select, MP, TRB, BLK, TOV, FTA, PTS, FG)
+
+mp_m = mean(nbaper36select$MP)
+
+fullgam_plots <- cbind(nba_sub, full_gam_c, full_gam_y)
+cnn <- c(colnames(nba_sub), "trb_pred", "blk_pred", "tov_pred", "fta_pred", "pts_pred", "fg_pred","mp_pred")
+colnames(fullgam_plots) <- cnn
+```
+
+```{r, include = FALSE}
+#creating gam plots
+plot1 <- ggplot(data = nbaper36select, aes(x = TRB, y = MP)) + 
+  geom_point() + 
+  geom_hline(yintercept = mp_m, linetype = 2, color = "blue") + 
+  geom_line(inherit.aes = F, size = 2, color = "gold", data = fullgam_plots,
+            aes(x = TRB, y = trb_pred + mp_m))
+
+plot2 <- ggplot(data = nbaper36select, aes(x = BLK, y = MP)) + 
+  geom_point() + 
+  geom_hline(yintercept = mp_m, linetype = 2, color = "blue") + 
+  geom_line(inherit.aes = F, size = 2, color = "gold", data = fullgam_plots,
+            aes(x = BLK, y = blk_pred + mp_m))
+
+plot3 <- ggplot(data = nbaper36select, aes(x = TOV, y = MP)) + 
+  geom_point() + 
+  geom_hline(yintercept = mp_m, linetype = 2, color = "blue") + 
+  geom_line(inherit.aes = F, size = 2, color = "gold", data = fullgam_plots,
+            aes(x = TOV, y = tov_pred + mp_m))
+
+plot4 <- ggplot(data = nbaper36select, aes(x = FTA, y = MP)) + 
+  geom_point() + 
+  geom_hline(yintercept = mp_m, linetype = 2, color = "blue") + 
+  geom_line(inherit.aes = F, size = 2, color = "gold", data = fullgam_plots,
+            aes(x = FTA, y = fta_pred + mp_m))
+
+plot5 <- ggplot(data = nbaper36select, aes(x = PTS, y = MP)) + 
+  geom_point() + 
+  geom_hline(yintercept = mp_m, linetype = 2, color = "blue") + 
+  geom_line(inherit.aes = F, size = 2, color = "gold", data = fullgam_plots,
+            aes(x = PTS, y = pts_pred + mp_m))
+
+plot6 <- ggplot(data = nbaper36select, aes(x = FG, y = MP)) + 
+  geom_point() + 
+  geom_hline(yintercept = mp_m, linetype = 2, color = "blue") + 
+  geom_line(inherit.aes = F, size = 2, color = "gold", data = fullgam_plots,
+            aes(x = FG, y = fg_pred + mp_m))
+```
+
+```{r}
+#graphing gam
+grid.arrange(plot1, plot2, plot3, plot4, plot5, plot6, ncol = 2)
+
+AIC(full_gam) 
+```
+
+
+## Kolmogorov Smirnov Test
+
+```{r ks test}
+sd(resid(ols_mod))
+
+ks.test(x = resid(ols_mod), y = pnorm, mean = 0, sd = 5.96654)
+
+#JHM
+sd(resid(model_f))
+
+ks.test(x = resid(model_f), y = pnorm, mean = 0, sd = 5.968016)
+
+
+sd(resid(full_gam))
+
+ks.test(x = resid(full_gam), y = pnorm, mean = 0, sd = 5.670123)
+
+```
+
+
+## Takeaways
