@@ -22,7 +22,7 @@ library(gridExtra)
 nbaper36 <- read_csv("nbaper36.csv") #reads in csv
 totplayers = as.list(nbaper36 %>% filter(Tm == "TOT") %>% select(Player))#list of players on multiple teams in season
 nbaper36 = nbaper36 %>% mutate(MP = MP/G) %>% filter(G > 41) %>% filter(!(Player %in% totplayers$Player & Tm != "TOT")) #mutates MP to reflect minutes played per game, filters for players who played >41 games, and removes player entries that are not season totals
-nbaper36select = select(nbaper36, Player, MP, TRB, BLK, TOV, FTA, PTS, 'FG%') %>% rename(FG = 'FG%')
+nbaper36select = select(nbaper36, Player, MP, TRB, AST, TOV, FTA, PTS, 'FG%') %>% rename(FG = 'FG%')
 
 GGally::ggpairs(select(nbaper36select, -Player))
 ```
@@ -36,43 +36,6 @@ GGally::ggpairs(select(nbaper36select, -Player))
 - We converted counting stats (eg rebounds) into per 36 minute rates. These rates can provide a good insight into a player’s productivity without interference from the number of minutes played by the player.
 
 
-## Bootstrap
-
-```{r bootstrap}
-set.seed(1109)
-
-
-# function to obtain regression weights
-bs <- function(formula, data, indices) {
-  d <- data[indices,] # allows boot to select sample
-  fit <- lm(formula, data=d)
-  return(coef(fit))
-}
-# bootstrapping with 1000 replications
-results <- boot(data = nbaper36select, statistic=bs,
-   R=1000, formula = MP ~ TRB + BLK + TOV + FTA + PTS + FG)
-
-# view results
-boot1 = plot(results, index=1) # intercept
-#boot2 = plot(results, index=2) # TRB
-#boot3 = plot(results, index=3) # BLK
-#boot4 = plot(results, index=4) # TOV
-#boot5 = plot(results, index=5) # FTA
-#boot6 = plot(results, index=6) # PTS
-#boot7 = plot(results, index=7) # FG%
-
-
-# get 95% confidence intervals
-boot.ci(results, type="bca", index=1) # intercept
-boot.ci(results, type="bca", index=2) # TRB
-boot.ci(results, type="bca", index=3) # BLK
-boot.ci(results, type="bca", index=4) # TOV
-boot.ci(results, type="bca", index=5) # FTA
-boot.ci(results, type="bca", index=6) # PTS
-boot.ci(results, type="bca", index=7) # FG%
-```
-
-
 ## Kernel Density Estimation
 
 ```{r kde}
@@ -84,7 +47,7 @@ kde2 = ggplot(data = nbaper36select, aes(TRB)) +
   geom_density(bw = "SJ", kernel = "epanechnikov", size = 2)
 
 
-kde3 = ggplot(data = nbaper36select, aes(BLK)) +
+kde3 = ggplot(data = nbaper36select, aes(AST)) +
   geom_density(bw = "SJ", kernel = "epanechnikov", size = 2)
 
 
@@ -110,23 +73,23 @@ grid.arrange(kde1, kde2, kde3, kde4, kde5, kde6, kde7, ncol = 3)
 ## OLS multiple linear regression
 
 ```{r ols}
-ols_mod <- lm(MP ~ TRB + BLK + TOV + FTA + PTS + FG, data = nbaper36select)
+ols_mod <- lm(MP ~ TRB + AST + TOV + FTA + PTS + FG, data = nbaper36select)
 summary(ols_mod)$coefficients
 ```
 
-MP = 9.499 - 0.333 TRB - 0.589 BLK + 0.669 TOV
-- 0.330 FTA + 0.879 PTS + 5.492 FG
+MP = 9.573 - 0.052 TRB + 1.185 AST - 1.884 TOV
+- 0.312 FTA + 0.963 PTS - 0.924 FG
 
 
 ## JHM multiple regression
 
 ```{r jhm}
-model_f = rfit(data = nbaper36select, MP ~ TRB + BLK + TOV + FTA + PTS + FG)
+model_f = rfit(data = nbaper36select, MP ~ TRB + AST + TOV + FTA + PTS + FG)
 summary(model_f)$coefficients
 ```
 
-MP = 9.710 - 0.366 TRB - 0.539 BLK + 0.677 TOV
-- 0.326 FTA + 0.903 PTS + 5.823 FG
+MP = 9.294 - 0.090 TRB + 1.176 AST - 1.764 TOV
+- 0.365 FTA + 0.987 PTS + 0.341 FG
 
 
 ## Generalized additive model
@@ -135,8 +98,8 @@ MP = 9.710 - 0.366 TRB - 0.539 BLK + 0.677 TOV
 #reb spline
 s_reb <- gam(MP ~ s(TRB), data = nbaper36select)
 
-#blk spline
-s_blk <- gam(MP ~ s(BLK), data = nbaper36select)
+#AST spline
+s_AST <- gam(MP ~ s(AST), data = nbaper36select)
 
 #tov spline
 simp_tov <- lm(MP ~ TOV, data = nbaper36select)
@@ -153,15 +116,15 @@ s_fg <- gam(MP ~ s(FG), data = nbaper36select)
 
 ```{r, include = FALSE}
 #gam
-full_gam <- gam(MP ~ s(TRB) + s(BLK) + TOV + FTA + s(PTS) + s(FG), data = nbaper36select)
+full_gam <- gam(MP ~ s(TRB) + s(AST) + TOV + FTA + s(PTS) + s(FG), data = nbaper36select)
 full_gam_c = predict(full_gam, type = "terms")
 full_gam_y <- fitted(full_gam)
-nba_sub <- select(.data = nbaper36select, MP, TRB, BLK, TOV, FTA, PTS, FG)
+nba_sub <- select(.data = nbaper36select, MP, TRB, AST, TOV, FTA, PTS, FG)
 
 mp_m = mean(nbaper36select$MP)
 
 fullgam_plots <- cbind(nba_sub, full_gam_c, full_gam_y)
-cnn <- c(colnames(nba_sub), "trb_pred", "blk_pred", "tov_pred", "fta_pred", "pts_pred", "fg_pred","mp_pred")
+cnn <- c(colnames(nba_sub), "trb_pred", "AST_pred", "tov_pred", "fta_pred", "pts_pred", "fg_pred","mp_pred")
 colnames(fullgam_plots) <- cnn
 ```
 
@@ -173,11 +136,11 @@ plot1 <- ggplot(data = nbaper36select, aes(x = TRB, y = MP)) +
   geom_line(inherit.aes = F, size = 2, color = "gold", data = fullgam_plots,
             aes(x = TRB, y = trb_pred + mp_m))
 
-plot2 <- ggplot(data = nbaper36select, aes(x = BLK, y = MP)) + 
+plot2 <- ggplot(data = nbaper36select, aes(x = AST, y = MP)) + 
   geom_point() + 
   geom_hline(yintercept = mp_m, linetype = 2, color = "blue") + 
   geom_line(inherit.aes = F, size = 2, color = "gold", data = fullgam_plots,
-            aes(x = BLK, y = blk_pred + mp_m))
+            aes(x = AST, y = AST_pred + mp_m))
 
 plot3 <- ggplot(data = nbaper36select, aes(x = TOV, y = MP)) + 
   geom_point() + 
@@ -215,20 +178,60 @@ AIC(full_gam)
 ## Kolmogorov Smirnov Test
 
 ```{r ks test}
-sd(resid(ols_mod))
+#sd(resid(ols_mod))
 
 ks.test(x = resid(ols_mod), y = pnorm, mean = 0, sd = 5.96654)
 
 #JHM
-sd(resid(model_f))
+#sd(resid(model_f))
 
 ks.test(x = resid(model_f), y = pnorm, mean = 0, sd = 5.968016)
+```
 
+## Kolmogorov Smirnov Test
 
-sd(resid(full_gam))
+```{r}
+#sd(resid(full_gam))
 
 ks.test(x = resid(full_gam), y = pnorm, mean = 0, sd = 5.670123)
 
+```
+
+
+## Bootstrap
+
+```{r bootstrap}
+set.seed(1109)
+
+
+# function to obtain regression weights
+bs <- function(formula, data, indices) {
+  d <- data[indices,] # allows boot to select sample
+  fit <- lm(formula, data=d)
+  return(coef(fit))
+}
+# bootstrapping with 1000 replications
+results <- boot(data = nbaper36select, statistic=bs,
+   R=1000, formula = MP ~ TRB + AST + TOV + FTA + PTS + FG)
+
+# view results
+boot1 = plot(results, index=1) # intercept
+#boot2 = plot(results, index=2) # TRB
+#boot3 = plot(results, index=3) # AST
+#boot4 = plot(results, index=4) # TOV
+#boot5 = plot(results, index=5) # FTA
+#boot6 = plot(results, index=6) # PTS
+#boot7 = plot(results, index=7) # FG%
+
+
+# get 95% confidence intervals
+boot.ci(results, type="bca", index=1) # intercept
+boot.ci(results, type="bca", index=2) # TRB
+boot.ci(results, type="bca", index=3) # AST
+boot.ci(results, type="bca", index=4) # TOV
+boot.ci(results, type="bca", index=5) # FTA
+boot.ci(results, type="bca", index=6) # PTS
+boot.ci(results, type="bca", index=7) # FG%
 ```
 
 
