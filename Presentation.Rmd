@@ -53,15 +53,13 @@ results <- boot(data = nbaper36select, statistic=bs,
    R=1000, formula = MP ~ TRB + BLK + TOV + FTA + PTS + FG)
 
 # view results
-results
-plot(results, index=1) # intercept
-plot(results, index=2) # TRB
-plot(results, index=3) # BLK
-plot(results, index=4) # TOV
-plot(results, index=5) # FTA
-plot(results, index=6) # PTS
-plot(results, index=7) # FG%
-
+boot1 = plot(results, index=1) # intercept
+#boot2 = plot(results, index=2) # TRB
+#boot3 = plot(results, index=3) # BLK
+#boot4 = plot(results, index=4) # TOV
+#boot5 = plot(results, index=5) # FTA
+#boot6 = plot(results, index=6) # PTS
+#boot7 = plot(results, index=7) # FG%
 
 
 # get 95% confidence intervals
@@ -78,32 +76,34 @@ boot.ci(results, type="bca", index=7) # FG%
 ## Kernel Density Estimation
 
 ```{r kde}
-ggplot(data = nbaper36select, aes(MP)) +
+kde1 = ggplot(data = nbaper36select, aes(MP)) +
   geom_density(bw = "SJ", kernel = "epanechnikov", size = 2)
 
 
-ggplot(data = nbaper36select, aes(TRB)) +
+kde2 = ggplot(data = nbaper36select, aes(TRB)) +
   geom_density(bw = "SJ", kernel = "epanechnikov", size = 2)
 
 
-ggplot(data = nbaper36select, aes(BLK)) +
+kde3 = ggplot(data = nbaper36select, aes(BLK)) +
   geom_density(bw = "SJ", kernel = "epanechnikov", size = 2)
 
 
-ggplot(data = nbaper36select, aes(TOV)) +
+kde4 = ggplot(data = nbaper36select, aes(TOV)) +
   geom_density(bw = "SJ", kernel = "epanechnikov", size = 2)
 
 
-ggplot(data = nbaper36select, aes(FTA)) +
+kde5 = ggplot(data = nbaper36select, aes(FTA)) +
   geom_density(bw = "SJ", kernel = "epanechnikov", size = 2)
 
 
-ggplot(data = nbaper36select, aes(PTS)) +
+kde6 = ggplot(data = nbaper36select, aes(PTS)) +
   geom_density(bw = "SJ", kernel = "epanechnikov", size = 2)
 
 
-ggplot(data = nbaper36select, aes(FG)) +
+kde7 = ggplot(data = nbaper36select, aes(FG)) +
   geom_density(bw = "SJ", kernel = "epanechnikov", size = 2)
+
+grid.arrange(kde1, kde2, kde3, kde4, kde5, kde6, kde7, ncol = 3)
 ```
 
 
@@ -233,3 +233,9 @@ ks.test(x = resid(full_gam), y = pnorm, mean = 0, sd = 5.670123)
 
 
 ## Takeaways
+
+* Raw box score numbers do not do a good job of predicting the number of minutes played
+
+* Of the models tested, the GAM seems to do best, but may be because of overfitting
+
+* Future studies could examine different models for different positions, or the usage of other stats
