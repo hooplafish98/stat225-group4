@@ -1,5 +1,5 @@
 ---
-title: "Presentation"
+title: "Predicting Minutes Played In The NBA"
 output: ioslides_presentation
 ---
 
@@ -400,12 +400,12 @@ AIC(full_gam1)
 ```{r ks test}
 #sd(resid(ols_mod))
 
-ks.test(x = resid(ols_mod), y = pnorm, mean = 0, sd = 5.96654)
+ks.test(x = resid(ols_mod1), y = pnorm, mean = 0, sd = 5.96654)
 
 #JHM
 #sd(resid(model_f))
 
-ks.test(x = resid(model_f), y = pnorm, mean = 0, sd = 5.968016)
+ks.test(x = resid(model_f1), y = pnorm, mean = 0, sd = 5.968016)
 ```
 
 ## Kolmogorov Smirnov Test
@@ -413,7 +413,7 @@ ks.test(x = resid(model_f), y = pnorm, mean = 0, sd = 5.968016)
 ```{r}
 #sd(resid(full_gam))
 
-ks.test(x = resid(full_gam), y = pnorm, mean = 0, sd = 5.670123)
+ks.test(x = resid(full_gam1), y = pnorm, mean = 0, sd = 5.670123)
 ```
 
 
