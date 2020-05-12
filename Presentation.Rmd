@@ -127,7 +127,8 @@ cv_rmc = function(dat, ols_mod, jhm_mod, gam_mod, k = 5, m = 10){
 
 #Setup for everything else
 
-nbaper36 <- read_csv("nbaper36.csv") #reads in csv
+URL = "https://www.amherst.edu/system/files/media/SP20_S06_Group4_data.csv"
+nbaper36 <- read_csv(URL) #reads in csv #reads in csv
 totplayers = as.list(nbaper36 %>% filter(Tm == "TOT") %>% select(Player))#list of players on multiple teams in season
 nbaper36 = nbaper36 %>% mutate(MP = MP/G) %>% filter(G > 41) %>% filter(!(Player %in% totplayers$Player & Tm != "TOT")) #mutates MP to reflect minutes played per game, filters for players who played >41 games, and removes player entries that are not season totals
 nbaper36select = select(nbaper36, Player, MP, TRB, AST, TOV, FTA, PTS, 'FG%') %>% rename(FG = 'FG%')
@@ -453,6 +454,6 @@ kable(round(out10,4))%>% kable_styling(position = "center")
 
 * Raw box score numbers do not do a good job of predicting the number of minutes played
 
-* Of the models tested, the GAM seems to do best, but may be because of overfitting
+* The models tested seem to have similar values for $R^2$, $Adj R^2$, and $L1_{prop}$.
 
 * Future studies could examine different models for different positions, or the usage of other stats
