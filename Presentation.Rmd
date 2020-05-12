@@ -196,7 +196,7 @@ ols_mod1 <- lm(MP ~ AST + TOV + PTS , data = nbaper36select)
 summary(ols_mod1)$coefficients
 ``` 
 
-MP = 9.573 - 1.2937 AST + 2.3198 TOV
+MP = 9.3395 - 1.2937 AST + 2.3198 TOV
 0.8941 PTS
 
 ## JHM multiple regression
@@ -216,7 +216,7 @@ model_f1 = rfit(data = nbaper36select, MP ~ AST + TOV + PTS)
 summary(model_f1)$coefficients
 ```
 
-MP = 9.294 - 1.2996 AST + 1.2995 TOV
+MP = 9.4239 - 1.2996 AST + 1.2995 TOV
 0.9083 PTS 
 
 ## Generalized additive model
