@@ -189,6 +189,15 @@ summary(ols_mod)$coefficients
 MP = 9.573 - 0.052 TRB + 1.185 AST - 1.884 TOV
 - 0.312 FTA + 0.963 PTS - 0.924 FG
 
+## OLS multiple linear regression
+
+```{r ols1}
+ols_mod1 <- lm(MP ~ AST + TOV + PTS , data = nbaper36select)
+summary(ols_mod1)$coefficients
+``` 
+
+MP = 9.573 - 1.2937 AST + 2.3198 TOV
+0.8941 PTS
 
 ## JHM multiple regression
 
@@ -200,6 +209,15 @@ summary(model_f)$coefficients
 MP = 9.294 - 0.090 TRB + 1.176 AST - 1.764 TOV
 - 0.365 FTA + 0.987 PTS + 0.341 FG
 
+## JHM multiple regression
+
+```{r jhm1}
+model_f1 = rfit(data = nbaper36select, MP ~ AST + TOV + PTS)
+summary(model_f1)$coefficients
+```
+
+MP = 9.294 - 1.2996 AST + 1.2995 TOV
+0.9083 PTS 
 
 ## Generalized additive model
 
@@ -438,7 +456,7 @@ boot.ci(results, type="bca", index=7) # FG%
 ```
 
 
-## Model Fit and CV
+## Model Fit and CV (Full Models)
 
 ```{r, message = FALSE, warning = FALSE}
 fit_final = rbind(fit_ols(ols_mod),fit_jhm(model_f),fit_gam(full_gam))
@@ -448,7 +466,16 @@ kable(round(fit_final, 4))%>% kable_styling(position = "center")
 out10 =cv_rmc(dat = nbaper36select, ols_mod = ols_mod, jhm_mod = model_f, gam_mod = full_gam)
 kable(round(out10,4))%>% kable_styling(position = "center")
 ```
+## Model Fit and CV (Reduced Models)
 
+```{r, message = FALSE, warning = FALSE}
+fit_final1 = rbind(fit_ols(ols_mod1),fit_jhm(model_f1),fit_gam(full_gam1))
+rownames(fit_final1) =c("OLS", "JHM", "GAM")
+kable(round(fit_final1, 4))%>% kable_styling(position = "center")
+
+out10a =cv_rmc(dat = nbaper36select, ols_mod = ols_mod1, jhm_mod = model_f1, gam_mod = full_gam1)
+kable(round(out10a,4))%>% kable_styling(position = "center")
+```
 
 ## Takeaways
 
