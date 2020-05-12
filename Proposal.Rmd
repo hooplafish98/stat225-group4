@@ -150,11 +150,11 @@ AIC(s_reb) #slightly lower aic
 ```
 
 ```{r}
-#blk spline
-simp_blk <- lm(MP ~ BLK, data = nbaper36select)
-s_blk <- gam(MP ~ s(BLK), data = nbaper36select)
-AIC(simp_blk) 
-AIC(s_blk) #slightly lower aic
+#ast spline
+simp_ast <- lm(MP ~ AST, data = nbaper36select)
+s_ast <- gam(MP ~ s(AST), data = nbaper36select)
+AIC(simp_ast) #lower aic
+AIC(s_ast) 
 ```
 
 ```{r}
@@ -210,10 +210,10 @@ ks.test(x = resid(full_gam), y = pnorm, mean = 0, sd = 5.670123)
 
 ```{r}
 #gam
-full_gam <- gam(MP ~ s(TRB) + s(BLK) + TOV + FTA + s(PTS) + s(FG), data = nbaper36select)
+full_gam <- gam(MP ~ s(TRB) + AST + TOV + FTA + s(PTS) + s(FG), data = nbaper36select)
 full_gam_c = predict(full_gam, type = "terms")
 full_gam_y <- fitted(full_gam)
-nba_sub <- select(.data = nbaper36select, MP, TRB, BLK, TOV, FTA, PTS, FG)
+nba_sub <- select(.data = nbaper36select, MP, TRB, AST, TOV, FTA, PTS, FG)
 
 mp_m = mean(nbaper36select$MP)
 
@@ -230,11 +230,11 @@ plot1 <- ggplot(data = nbaper36select, aes(x = TRB, y = MP)) +
   geom_line(inherit.aes = F, size = 2, color = "gold", data = fullgam_plots,
             aes(x = TRB, y = trb_pred + mp_m))
 
-plot2 <- ggplot(data = nbaper36select, aes(x = BLK, y = MP)) + 
+plot2 <- ggplot(data = nbaper36select, aes(x = AST, y = MP)) + 
   geom_point() + 
   geom_hline(yintercept = mp_m, linetype = 2, color = "blue") + 
   geom_line(inherit.aes = F, size = 2, color = "gold", data = fullgam_plots,
-            aes(x = BLK, y = blk_pred + mp_m))
+            aes(x = AST, y = blk_pred + mp_m))
 
 plot3 <- ggplot(data = nbaper36select, aes(x = TOV, y = MP)) + 
   geom_point() + 
@@ -269,7 +269,7 @@ grid.arrange(plot1, plot2, plot3, plot4, plot5, plot6, ncol = 2)
 ```
 
 ```{r}
-full_gam1 <- gam(MP ~ poly(TRB, 3) + FTA + s(FG) + poly(PTS, 3), data = nbaper36select)
+full_gam1 <- gam(MP ~ s(TRB) + AST + TOV + s(PTS) + s(FG), data = nbaper36select)
 AIC(full_gam) 
 AIC(full_gam1)
 ```

@@ -205,26 +205,38 @@ MP = 9.294 - 0.090 TRB + 1.176 AST - 1.764 TOV
 ```{r, include = FALSE}
 #reb spline
 s_reb <- gam(MP ~ s(TRB), data = nbaper36select)
+rebplot = data.frame(nbaper36select$TRB, fitted(s_reb))
+colnames(rebplot) = c("TRB", "smooth")
 
 #AST spline
-s_AST <- gam(MP ~ s(AST), data = nbaper36select)
+simp_ast <- gam(MP ~ AST, data = nbaper36select)
+astplot = data.frame(nbaper36select$AST, fitted(simp_ast))
+colnames(astplot) = c("AST", "simp")
 
 #tov spline
 simp_tov <- lm(MP ~ TOV, data = nbaper36select)
+tovplot = data.frame(nbaper36select$TOV, fitted(simp_tov))
+colnames(tovplot) = c("TOV", "simp")
 
 #fta spline
 simp_fta <- lm(MP ~ FTA, data = nbaper36select)
+ftaplot = data.frame(nbaper36select$FTA, fitted(simp_fta))
+colnames(ftaplot) = c("FTA", "simp")
 
 #pts spline
 s_pts <- gam(MP ~ s(PTS), data = nbaper36select)
+ptsplot = data.frame(nbaper36select$PTS, fitted(s_pts))
+colnames(ptsplot) = c("PTS", "smooth")
 
 #fg spline
 s_fg <- gam(MP ~ s(FG), data = nbaper36select)
+fgplot = data.frame(nbaper36select$FG, fitted(s_fg))
+colnames(fgplot) = c("FG", "smooth")
 ```
 
 ```{r, include = FALSE}
 #gam
-full_gam <- gam(MP ~ s(TRB) + s(AST) + TOV + FTA + s(PTS) + s(FG), data = nbaper36select)
+full_gam <- gam(MP ~ s(TRB) + AST + TOV + FTA + s(PTS) + s(FG), data = nbaper36select)
 full_gam_c = predict(full_gam, type = "terms")
 full_gam_y <- fitted(full_gam)
 nba_sub <- select(.data = nbaper36select, MP, TRB, AST, TOV, FTA, PTS, FG)
@@ -234,6 +246,14 @@ mp_m = mean(nbaper36select$MP)
 fullgam_plots <- cbind(nba_sub, full_gam_c, full_gam_y)
 cnn <- c(colnames(nba_sub), "trb_pred", "AST_pred", "tov_pred", "fta_pred", "pts_pred", "fg_pred","mp_pred")
 colnames(fullgam_plots) <- cnn
+
+fullgam_plots <- cbind(fullgam_plots, 
+                       best_trb = rebplot$smooth,
+                       best_ast = astplot$simp,
+                       best_tov = tovplot$simp,
+                       best_fta = ftaplot$simp,
+                       best_pts = ptsplot$smooth,
+                       best_fg = fgplot$smooth)
 ```
 
 ```{r, include = FALSE}
@@ -241,36 +261,48 @@ colnames(fullgam_plots) <- cnn
 plot1 <- ggplot(data = nbaper36select, aes(x = TRB, y = MP)) + 
   geom_point() + 
   geom_hline(yintercept = mp_m, linetype = 2, color = "blue") + 
+  geom_line(inherit.aes = F, size = 2, color = "red", data = fullgam_plots,
+            aes(x = TRB, y = best_trb)) +
   geom_line(inherit.aes = F, size = 2, color = "gold", data = fullgam_plots,
             aes(x = TRB, y = trb_pred + mp_m))
 
 plot2 <- ggplot(data = nbaper36select, aes(x = AST, y = MP)) + 
   geom_point() + 
   geom_hline(yintercept = mp_m, linetype = 2, color = "blue") + 
+  geom_line(inherit.aes = F, size = 2, color = "red", data = fullgam_plots,
+            aes(x = AST, y = best_ast)) +
   geom_line(inherit.aes = F, size = 2, color = "gold", data = fullgam_plots,
             aes(x = AST, y = AST_pred + mp_m))
 
 plot3 <- ggplot(data = nbaper36select, aes(x = TOV, y = MP)) + 
   geom_point() + 
   geom_hline(yintercept = mp_m, linetype = 2, color = "blue") + 
+  geom_line(inherit.aes = F, size = 2, color = "red", data = fullgam_plots,
+            aes(x = TOV, y = best_tov)) +
   geom_line(inherit.aes = F, size = 2, color = "gold", data = fullgam_plots,
             aes(x = TOV, y = tov_pred + mp_m))
 
 plot4 <- ggplot(data = nbaper36select, aes(x = FTA, y = MP)) + 
   geom_point() + 
   geom_hline(yintercept = mp_m, linetype = 2, color = "blue") + 
+  geom_line(inherit.aes = F, size = 2, color = "red", data = fullgam_plots,
+            aes(x = FTA, y = best_fta)) +
   geom_line(inherit.aes = F, size = 2, color = "gold", data = fullgam_plots,
             aes(x = FTA, y = fta_pred + mp_m))
 
 plot5 <- ggplot(data = nbaper36select, aes(x = PTS, y = MP)) + 
   geom_point() + 
   geom_hline(yintercept = mp_m, linetype = 2, color = "blue") + 
+  geom_line(inherit.aes = F, size = 2, color = "red", data = fullgam_plots,
+            aes(x = PTS, y = best_pts)) +
   geom_line(inherit.aes = F, size = 2, color = "gold", data = fullgam_plots,
             aes(x = PTS, y = pts_pred + mp_m))
 
 plot6 <- ggplot(data = nbaper36select, aes(x = FG, y = MP)) + 
   geom_point() + 
   geom_hline(yintercept = mp_m, linetype = 2, color = "blue") + 
+  geom_line(inherit.aes = F, size = 2, color = "red", data = fullgam_plots,
+            aes(x = FG, y = best_fg)) +
   geom_line(inherit.aes = F, size = 2, color = "gold", data = fullgam_plots,
             aes(x = FG, y = fg_pred + mp_m))
 ```
@@ -279,7 +311,68 @@ plot6 <- ggplot(data = nbaper36select, aes(x = FG, y = MP)) +
 #graphing gam
 grid.arrange(plot1, plot2, plot3, plot4, plot5, plot6, ncol = 2)
 
-AIC(full_gam) 
+AIC(full_gam)
+```
+
+
+## Generalized additive model
+
+```{r, include = FALSE}
+#gam1
+full_gam1 <- gam(MP ~ AST + TOV + s(PTS) + s(FG), data = nbaper36select)
+full_gam_c1 = predict(full_gam1, type = "terms")
+full_gam_y1 <- fitted(full_gam1)
+
+fullgam_plots1 <- cbind(nba_sub, full_gam_c1, full_gam_y1)
+cnn1 <- c(colnames(nba_sub), "AST_pred", "tov_pred", "pts_pred", "fg_pred","mp_pred")
+colnames(fullgam_plots1) <- cnn1
+
+fullgam_plots1 <- cbind(fullgam_plots1, 
+                       best_ast = astplot$simp,
+                       best_tov = tovplot$simp,
+                       best_pts = ptsplot$smooth,
+                       best_fg = fgplot$smooth)
+
+
+#creating gam plots
+
+plot7 <- ggplot(data = nbaper36select, aes(x = AST, y = MP)) + 
+  geom_point() + 
+  geom_hline(yintercept = mp_m, linetype = 2, color = "blue") + 
+  geom_line(inherit.aes = F, size = 2, color = "red", data = fullgam_plots1,
+            aes(x = AST, y = best_ast)) +
+  geom_line(inherit.aes = F, size = 2, color = "gold", data = fullgam_plots1,
+            aes(x = AST, y = AST_pred + mp_m))
+
+plot8 <- ggplot(data = nbaper36select, aes(x = TOV, y = MP)) + 
+  geom_point() + 
+  geom_hline(yintercept = mp_m, linetype = 2, color = "blue") + 
+  geom_line(inherit.aes = F, size = 2, color = "red", data = fullgam_plots1,
+            aes(x = TOV, y = best_tov)) +
+  geom_line(inherit.aes = F, size = 2, color = "gold", data = fullgam_plots1,
+            aes(x = TOV, y = tov_pred + mp_m))
+
+plot9 <- ggplot(data = nbaper36select, aes(x = PTS, y = MP)) + 
+  geom_point() + 
+  geom_hline(yintercept = mp_m, linetype = 2, color = "blue") + 
+  geom_line(inherit.aes = F, size = 2, color = "red", data = fullgam_plots1,
+            aes(x = PTS, y = best_pts)) +
+  geom_line(inherit.aes = F, size = 2, color = "gold", data = fullgam_plots1,
+            aes(x = PTS, y = pts_pred + mp_m))
+
+plot10 <- ggplot(data = nbaper36select, aes(x = FG, y = MP)) + 
+  geom_point() + 
+  geom_hline(yintercept = mp_m, linetype = 2, color = "blue") + 
+  geom_line(inherit.aes = F, size = 2, color = "red", data = fullgam_plots1,
+            aes(x = FG, y = best_fg)) +
+  geom_line(inherit.aes = F, size = 2, color = "gold", data = fullgam_plots1,
+            aes(x = FG, y = fg_pred + mp_m))
+```
+
+```{r}
+grid.arrange(plot7, plot8, plot9, plot10, ncol=2)
+
+AIC(full_gam1)
 ```
 
 
@@ -302,7 +395,6 @@ ks.test(x = resid(model_f), y = pnorm, mean = 0, sd = 5.968016)
 #sd(resid(full_gam))
 
 ks.test(x = resid(full_gam), y = pnorm, mean = 0, sd = 5.670123)
-
 ```
 
 
