@@ -13,11 +13,119 @@ library(ggplot2)
 library(gam)
 library(splines)
 library(gridExtra)
+library(knitr)
+library(kableExtra)
+library(stringr)
 ```
 
 ```{r, include=FALSE}
 #loaded the data here... not sure if we need to show this on a slide or not
 
+#Fit setup
+#Fit statistics for OLS
+
+fit_ols = function(model) {
+  yy = model$residuals + model$fitted.values
+  rsq = 1- sum(model$residuals^2)/sum((yy- mean(yy))^2)
+  nn =length(yy)
+  adjrsq = 1-(1-rsq)*((nn-1)/(nn- length(model$coefficients)))
+  propL1 = 1- sum(abs(model$residuals))/sum(abs(yy- mean(yy)))
+  
+  return(cbind(rsq = rsq, adjrsq = adjrsq, propL1 = propL1))
+  }
+
+#Fit statistics for JHM
+
+fit_jhm = function(model) {
+  rsq = 1- sum(model$residuals^2)/sum((model$y- mean(model$y))^2)
+  nn =length(model$y)
+  adjrsq = 1-(1-rsq)*((nn-1)/(nn- length(model$coefficients)))
+  propL1 = 1- sum(abs(model$residuals))/sum(abs(model$y- mean(model$y)))
+  
+  return(cbind(rsq = rsq, adjrsq = adjrsq, propL1 = propL1))
+  }
+
+#Fit statistics for GAM
+
+fit_gam = function(model) {
+  rsq = 1-model$deviance/model$null.deviance
+  adjrsq = 1-(1-rsq)*(model$df.null/model$df.residual)
+  propL1 = 1- sum(abs(model$residuals))/sum(abs(model$y- mean(model$y)))
+  
+  return(cbind(rsq = rsq, adjrsq = adjrsq, propL1 = propL1))}
+
+#CV setup
+
+#General fit statistics
+
+fit_gen = function(y, res, df){
+  rsq = 1- sum(res^2)/sum((y- mean(y))^2)
+  nn =length(y)
+  adjrsq = 1-(1-rsq)*((nn-1)/(nn-df))
+  propL1 = 1- sum(abs(res))/sum(abs(y- mean(y)))
+  
+  return(cbind(rsq = rsq, adjrsq = adjrsq, propL1 = propL1))
+  }
+
+#My cross-validation function for this project
+
+cv_rmc = function(dat, ols_mod, jhm_mod, gam_mod, k = 5, m = 10){
+  
+  #(Some) error checking
+  
+  if(class(ols_mod)!="lm")stop('ols_mod should come from the lm() function')
+  if(class(jhm_mod)!="rfit")stop('jhm_mod should come from the rfit() function')
+  if(class(gam_mod)[1]!="Gam")stop('gam_mod should come from the gam() function')
+  #Create model call character strings with subsetted data; uses stringr f()s
+  dat.name =paste0("data = ",deparse(substitute(dat)))
+  ols_call =capture.output(ols_mod$call)
+  ols_call =str_replace(ols_call, dat.name, "data = dat[-part[[i]], ]")
+  jhm_call =capture.output(jhm_mod$call)
+  jhm_call =str_replace(jhm_call, dat.name, "data = dat[-part[[i]], ]")
+  gam_call =paste(str_trim(capture.output(gam_mod$call)), sep="", collapse="")
+  gam_call =str_replace(gam_call, dat.name, "data = dat[-part[[i]], ]")
+  #Set up objects
+  ols_fit =matrix(nrow = m, ncol = 3)
+  jhm_fit = ols_fit; gam_fit = ols_fit
+  yy = jhm_mod$y
+  nn =dim(as.data.frame(dat))[1]
+  oos_lmres =vector(length = nn)
+  oos_jhres = oos_lmres; oos_gares = oos_lmres
+  df_ols =length(ols_mod$coefficients)
+  df_jhm =length(jhm_mod$coefficients)
+  df_gam = nn-gam_mod$df.residual
+  
+  #Repeat k-fold cross-validation m times
+  for(j in 1:m) {
+    #Split data into k equal-ish parts, with random indices
+    part =suppressWarnings(split(sample(nn), 1:k))
+    #Execute model calls for all k folds; %*% is matrix multiplication
+    for(i in 1:k){
+      lm_mod =eval(parse(text = ols_call))
+      pred =predict(object = lm_mod, newdata = dat[part[[i]],])
+      oos_lmres[part[[i]]] = yy[part[[i]]]-pred
+      jh_mod =eval(parse(text = jhm_call))
+      subdat =select(.data = dat,colnames(jh_mod$x)[-1])[part[[i]],]
+      subdat =cbind(1,as.matrix.data.frame(subdat))
+      pred = subdat%*%jh_mod$coefficients
+      oos_jhres[part[[i]]] = yy[part[[i]]]-pred
+      
+      ga_mod =eval(parse(text = gam_call))
+      pred =predict(object = ga_mod, newdata = dat[part[[i]],])
+      oos_gares[part[[i]]] = yy[part[[i]]]-pred
+      }
+    ols_fit[j, ] =fit_gen(y = yy, res = oos_lmres, df = df_ols)
+    jhm_fit[j, ] =fit_gen(y = yy, res = oos_jhres, df = df_jhm)
+    gam_fit[j, ] =fit_gen(y = yy, res = oos_gares, df = df_gam)}
+  #Manage output -- average fit statistics
+  outtie = rbind(colMeans(ols_fit),colMeans(jhm_fit),colMeans(gam_fit))
+  colnames(outtie) = paste0("cv.",colnames(fit_ols(lm_mod)))
+  row.names(outtie) =c("OLS", "JHM", "GAM")
+  
+  return(outtie)
+  }
+
+#Setup for everything else
 
 nbaper36 <- read_csv("nbaper36.csv") #reads in csv
 totplayers = as.list(nbaper36 %>% filter(Tm == "TOT") %>% select(Player))#list of players on multiple teams in season
@@ -223,7 +331,9 @@ boot1 = plot(results, index=1) # intercept
 #boot6 = plot(results, index=6) # PTS
 #boot7 = plot(results, index=7) # FG%
 
+```
 
+```{r, echo = FALSE} 
 # get 95% confidence intervals
 boot.ci(results, type="bca", index=1) # intercept
 boot.ci(results, type="bca", index=2) # TRB
@@ -232,6 +342,18 @@ boot.ci(results, type="bca", index=4) # TOV
 boot.ci(results, type="bca", index=5) # FTA
 boot.ci(results, type="bca", index=6) # PTS
 boot.ci(results, type="bca", index=7) # FG%
+```
+
+
+## Model Fit and CV
+
+```{r, message = FALSE, warning = FALSE}
+fit_final = rbind(fit_ols(ols_mod),fit_jhm(model_f),fit_gam(full_gam))
+rownames(fit_final) =c("OLS", "JHM", "GAM")
+kable(round(fit_final, 4))%>% kable_styling(position = "center")
+
+out10 =cv_rmc(dat = nbaper36select, ols_mod = ols_mod, jhm_mod = model_f, gam_mod = full_gam)
+kable(round(out10,4))%>% kable_styling(position = "center")
 ```
 
 
