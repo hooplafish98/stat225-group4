@@ -43,10 +43,12 @@ EXPLORATORY ANALYSIS:
 
 
 ```{r}
-nbaper36 <- read_csv("nbaper36.csv") #reads in csv
+URL = "https://www.amherst.edu/system/files/media/SP20_S06_Group4_data.csv"
+nbaper36 <- read_csv(URL) #reads in csv #reads in csv
 totplayers = as.list(nbaper36 %>% filter(Tm == "TOT") %>% select(Player))#list of players on multiple teams in season
 nbaper36 = nbaper36 %>% mutate(MP = MP/G) %>% filter(G > 41) %>% filter(!(Player %in% totplayers$Player & Tm != "TOT")) #mutates MP to reflect minutes played per game, filters for players who played >41 games, and removes player entries that are not season totals
-nbaper36select = select(nbaper36, Player, MP, TRB, BLK, TOV, FTA, PTS, 'FG%') %>% rename(FG = 'FG%')
+nbaper36select = select(nbaper36, Player, MP, TRB, AST, TOV, FTA, PTS, 'FG%') %>% rename(FG = 'FG%')
+
 
 GGally::ggpairs(select(nbaper36select, -Player))
 ```
@@ -89,9 +91,93 @@ boot.ci(results, type="bca", index=7) # FG%
 
 ```{r}
 #OLM
-model_olm = lm(data = nbaper36, MP ~ TRB + BLK + TOV + FTA + PTS + FG)
+model_olm = lm(data = nbaper36select, MP ~ TRB + AST + TOV + FTA + PTS + FG)
 summary(model_olm) # Only PTS is significant s
 ```
+
+
+## Full OLS Multiple Regression Test
+$H_0: \beta_1 = \beta_2 =\beta_3 =\beta_4 =\beta_5 =\beta_6 =0$
+
+$H_A: \exists \beta_j \ni [\beta_1, \beta_2, \beta_3, \beta_4, \beta_5, \beta_6] s.t. \beta_j \neq 0$
+
+Where $\beta_1$ is the effect of points on minutes played, $\beta_2$ is the effect of turnovers on minutes played,  $\beta_3$ is the effect of field goal percentage on minutes played, $\beta_4$ is the effect of total rebounds on minutes played, $\beta_5$ is the effect of assists on minutes played, and  $\beta_6$ is the effect of free throw attemps on minutes played.
+
+We will be using a significance level of $\alpha = 0.05$
+
+```{r}
+#Residual Plot
+mplot(model_olm, which = c(1))
+```
+Conditions:
+As illustrated by the residual vs fitted plot, the residuals are approximately normally distributed as there is random scatter throughout the distribution. The plot all illuysrates the condition of equal variance being met as the variance is quite variable throughout the entirety of the data. We can also say that the data are independent of one another as one player's statistics are not influenced by that of another player.
+
+The F- Statistic is 32.36 on 6 and 342 degrees of freedom, with an assocaited p-value less than 0.0001, so at the signficance level of $\alpha = 0.05$, the model is singifiance and we have significant evidence to reject the $H_0$ and claimed that $\exists \beta_j \ni [\beta_1, \beta_2, \beta_3, \beta_4, \beta_5, \beta_6] s.t. \beta_j \neq 0$
+
+
+## Reduced OLS Multiple Regression Test
+$H_0: \beta_1 = \beta_2 =\beta_3 =0$
+
+$H_A: \exists \beta_j \ni [\beta_1, \beta_2, \beta_3] s.t. \beta_j \neq 0$
+
+Where $\beta_1$ is the effect of points on minutes played, $\beta_2$ is the effect of turnovers on minutes played,  and $\beta_3$ is the effect of   assists on minutes played.
+
+We will be using a significance level of $\alpha = 0.05$
+
+```{r}
+ols_mod1 <- lm(MP ~   AST + TOV  + PTS , data = nbaper36select)
+summary(ols_mod1)
+```
+
+
+```{r}
+mplot(ols_mod1, which = c(1))
+```
+Conditions:
+As illustrated by the residual vs fitted plot, the residuals are approximately normally distributed as there is random scatter throughout the distribution. The plot all illuysrates the condition of equal variance being met as the variance is quite variable throughout the entirety of the data. We can also say that the data are independent of one another as one player's statistics are not influenced by that of another player.
+
+
+The F- Statistic is 64.3 on 3 and 345 degrees of freedom, with an assocaited p-value less than 0.0001, so at the signficance level of $\alpha = 0.05$, the model is singifiance and we have significant evidence to reject the $H_0$ and claimed that $\exists \beta_j \ni [\beta_1, \beta_2, \beta_3] s.t. \beta_j \neq 0$.
+
+
+
+## Full JHM Model
+$H_0: \beta_1 = \beta_2 =\beta_3 =\beta_4 =\beta_5 =\beta_6 =0$
+
+$H_A: \exists \beta_j \ni [\beta_1, \beta_2, \beta_3, \beta_4, \beta_5, \beta_6] s.t. \beta_j \neq 0$
+
+Where $\beta_1$ is the effect of points on minutes played, $\beta_2$ is the effect of turnovers on minutes played,  $\beta_3$ is the effect of field goal percentage on minutes played, $\beta_4$ is the effect of total rebounds on minutes played, $\beta_5$ is the effect of assists on minutes played, and  $\beta_6$ is the effect of free throw attemps on minutes played.
+
+We will be using a significance level of $\alpha = 0.05$
+```{r}
+model_f = rfit(data = nbaper36select, MP ~ TRB + AST + TOV + FTA + PTS + FG)
+summary(model_f)
+```
+Conditions: There are no conditions for the nonparametric JHM hypothesis test, aside from the fact that the data are independent. We can say this condition is met as one player's statistics are not influenced by others.
+
+The Wald Statistic has a value of 188.9863 with an associated p-value of esentially 0, so we have significant evidence to reject the $H_0$ and say that $\exists \beta_j \ni [\beta_1, \beta_2, \beta_3, \beta_4, \beta_5, \beta_6] s.t. \beta_j \neq 0$. 
+
+
+
+## Reduced JHM Model
+
+$H_0: \beta_1 = \beta_2 =\beta_3 =0$
+
+$H_A: \exists \beta_j \ni [\beta_1, \beta_2, \beta_3] s.t. \beta_j \neq 0$
+
+Where $\beta_1$ is the effect of points on minutes played, $\beta_2$ is the effect of turnovers on minutes played,  and $\beta_3$ is the effect of   assists on minutes played.
+
+We will be using a significance level of $\alpha = 0.05$
+
+```{r}
+model_f1 = rfit(data = nbaper36select, MP ~ AST + TOV + PTS)
+summary(model_f1)
+```
+Conditions: There are no conditions for the nonparametric JHM hypothesis test, aside from the fact that the data are independent. We can say this condition is met as one player's statistics are not influenced by others.
+
+
+The Wald Statistic has a value of 188.395 with an associated p-value of esentially 0, so we have significant evidence to reject the $H_0$ and say that 
+$\exists \beta_j \ni [\beta_1, \beta_2, \beta_3] s.t. \beta_j \neq 0$.
 
 ```{r}
 # JHM
@@ -190,21 +276,75 @@ AIC(s_fg) #lower aic
 ```
 
 ```{r}
+# OLS KS Test Residual Plot
+mplot(ols_mod1, which = c(1))
 
-sd(resid(ols_mod))
+```
+```{r}
+#OLS KS Code
+ks.test(x = resid(ols_mod), y = pnorm, mean = 0, sd = 5.796699)
+```
+$H_0:$ F(t) = G(t) for all t.
 
-ks.test(x = resid(ols_mod), y = pnorm, mean = 0, sd = 5.96654)
+$H_A:$ F(t) $\neq$ G(t) for at least one t.
 
-#JHM
+where F is the normal CDF of mean zero and standard deviation 5.7967 and G is the distribution of the residuals of the reduced ols.
 
-sd(resid(model_f))
+We will be using a significance level of $\alpha = 0.05$
 
-ks.test(x = resid(model_f), y = pnorm, mean = 0, sd = 5.968016)
+Conditions: There is independence in the distributions and the data comes from a continuous population. For both the normal and residual distribution, we can say they are continuous. We all can assume independence. 
+
+The test-statistic, D-value, generated by the Kolmogorov-Smirnov test is 0.049634 with an associated p-value of 0.3562. At the significance level of $\alpha = 0.05$, this indicates we do not have significant evidence to reject the $H_0$ and claim the residuals follow a roughly normal distribution.
 
 
-sd(resid(full_gam))
+```{r}
+jhmresid = ggplot(data = jhmdataframe, aes(x = Fitted_Values, y = Residuals)) +
+                    geom_point() + geom_smooth(method = lm, color = "red") + labs(title = "JHM Residual vs Fitted")
 
-ks.test(x = resid(full_gam), y = pnorm, mean = 0, sd = 5.670123)
+plot(jhmresid)
+```
+
+
+$H_0:$ F(t) = G(t) for all t.
+
+$H_A:$ F(t) $\neq$ G(t) for at least one t.
+
+where F is the normal CDF of mean zero and standard deviation 5.7975 and G is the distribution of the residuals of the reduced JHM model
+
+We will be using a significance level of $\alpha = 0.05$
+
+Conditions: There is independence in the distributions and the data comes from a continuous population. For both the normal and residual distribution, we can say they are continuous. We all can assume independence. 
+
+The test-statistic, D-value, generated by the Kolmogorov-Smirnov test is 0.046003 with an associated p-value of 0.4511 At the significance level of $\alpha = 0.05$, this indicates we do not have significant evidence to reject the $H_0$ and claim the residuals follow a roughly normal distribution.
+
+```{r}
+#JHM KS Test
+ks.test(x = resid(model_f), y = pnorm, mean = 0, sd = 5.797549)
+```
+
+
+```{r}
+gamresid = ggplot(data = gamdataframe, aes(x = Fitted_Values, y = Residuals)) +
+                    geom_point() + geom_smooth(method = lm, color = "red") + labs(title = "GAM Residual vs Fitted")
+plot(gamresid)
+```
+
+
+$H_0:$ F(t) = G(t) for all t.
+
+$H_A:$ F(t) $\neq$ G(t) for at least one t.
+
+where F is the normal CDF of mean zero and standard deviation 5.6249 and G is the distribution of the residuals of the reduced GAM model
+
+We will be using a significance level of $\alpha = 0.05$
+
+Conditions: There is independence in the distributions and the data comes from a continuous population. For both the normal and residual distribution, we can say they are continuous. We all can assume independence. 
+
+The test-statistic, D-value, generated by the Kolmogorov-Smirnov test is 0.050011 with an associated p-value of 0.3472 At the significance level of $\alpha = 0.05$, this indicates we do not have significant evidence to reject the $H_0$ and claim the residuals follow a roughly normal distribution.
+
+```{r}
+#Gam KS Test
+ks.test(x = resid(full_gam), y = pnorm, mean = 0, sd = 5.624864)
 
 ```
 
