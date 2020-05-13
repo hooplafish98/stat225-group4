@@ -248,6 +248,8 @@ grid.arrange(tplot1, tplot2, tplot3, tplot4, tplot5, tplot6, tplot7, ncol = 2)
 
 From this, we can see that the t-statistic for `TRB`, `FG`, and `FTA` are not indicative of predictive value, white the t-statistic for `PTS`, `AST`, and `TOV` are.
 
+
+##JHM
 ```{r}
 # JHM
 model_f = rfit(data = nbaper36select, MP ~ TRB + BLK + TOV + FTA + PTS + FG)
@@ -261,34 +263,6 @@ drop.test(model_f, part_mod)
 
 Super high p value here... probably can drop everything except TRB and PTS.
 
-```{r}
-ggplot(data = nbaper36select, aes(MP)) +
-  geom_density(bw = "SJ", kernel = "epanechnikov", size = 2)
-
-
-ggplot(data = nbaper36select, aes(TRB)) +
-  geom_density(bw = "SJ", kernel = "epanechnikov", size = 2)
-
-
-ggplot(data = nbaper36select, aes(BLK)) +
-  geom_density(bw = "SJ", kernel = "epanechnikov", size = 2)
-
-
-ggplot(data = nbaper36select, aes(TOV)) +
-  geom_density(bw = "SJ", kernel = "epanechnikov", size = 2)
-
-
-ggplot(data = nbaper36select, aes(FTA)) +
-  geom_density(bw = "SJ", kernel = "epanechnikov", size = 2)
-
-
-ggplot(data = nbaper36select, aes(PTS)) +
-  geom_density(bw = "SJ", kernel = "epanechnikov", size = 2)
-
-
-ggplot(data = nbaper36select, aes(FG)) +
-  geom_density(bw = "SJ", kernel = "epanechnikov", size = 2)
-```
 
 ```{r}
 #ols
@@ -429,4 +403,22 @@ AIC(full_gam)
 AIC(full_gam1)
 ```
 
+## Model Fit and CV
 
+
+We also decided to see the fit statistics for the three models, as well as running a 5-fold crossvalidation on the fit statistics. Using that, we got the following fit statistics.
+
+```{r, message = FALSE, warning = FALSE}
+fit_final1 = rbind(fit_ols(ols_mod1),fit_jhm(model_f1),fit_gam(full_gam1))
+rownames(fit_final1) =c("OLS", "JHM", "GAM")
+kable(round(fit_final1, 4))%>% kable_styling(position = "center")
+
+out10a =cv_rmc(dat = nbaper36select, ols_mod = ols_mod1, jhm_mod = model_f1, gam_mod = full_gam1)
+kable(round(out10a,4))%>% kable_styling(position = "center")
+```
+
+Overall, all the values indicate low predictive power. Interestingly, the GAM displays higher values in both $R^2$ and $L1_{prop}$ when compared to the OLS and JHM, yet displays a lower value for $R^2_{Adj}$ wheen compared to the other two models. This seems to indicate the GAM is overfit. This issue along with the normality of the residuals as shown in the Kolmogorov-Smirnov test seem to indicate that the OLS model is best suited for prediction.
+
+## Conclusion
+
+In conclusion, it seems that the models we created do an overall poor job of predicting the minutes played of a given NBA player. The different models also all had comparable fit statistics, indicating there wasn't much of a difference in performance between the three models. Future avenues of exploration could include creating position-specific models, using other statistics including defensive statistics or other advanced statistics, changing the filter conditions to include more or fewer players, or using multiple seasons worth of data. 
