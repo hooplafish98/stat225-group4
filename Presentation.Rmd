@@ -178,10 +178,43 @@ kde7 = ggplot(data = nbaper36select, aes(FG)) +
 grid.arrange(kde1, kde2, kde3, kde4, kde5, kde6, kde7, ncol = 3)
 ```
 
+## Scatterplots
+
+```{r}
+splot1 <- ggplot(data = nbaper36select, aes(x = TRB, y = MP)) + 
+  geom_point()
+
+splot2 <- ggplot(data = nbaper36select, aes(x = AST, y = MP)) + 
+  geom_point()
+splot3 <- ggplot(data = nbaper36select, aes(x = TOV, y = MP)) + 
+  geom_point()
+splot4 <- ggplot(data = nbaper36select, aes(x = FTA, y = MP)) + 
+  geom_point()
+splot5 <- ggplot(data = nbaper36select, aes(x = PTS, y = MP)) + 
+  geom_point()
+splot6 <- ggplot(data = nbaper36select, aes(x = FG, y = MP)) + 
+  geom_point()
+
+grid.arrange(splot1, splot2, splot3, splot4, splot5, splot6, ncol = 2)
+```
+
+
+## OLS multiple linear regression
+
+```{r ols}
+ols_mod <- lm(MP ~ TRB + AST + TOV + FTA + PTS + FG, data = nbaper36select)
+tableols = summary(ols_mod)$coefficients [,4]
+
+kable(round(tableols,4))%>% kable_styling(position = "center")
+
+```
+
+MP = 9.573 - 0.052 TRB + 1.185 AST - 1.884 TOV
+- 0.312 FTA + 0.963 PTS - 0.924 FG
 
 ## Bootstrap
 
-```{r bootstrap}
+```{r bootstrap, warning=FALSE, message=FALSE}
 set.seed(1109)
 
 
@@ -212,18 +245,6 @@ tplot7 = ggplot(data = tvalues, aes(x = FG)) + geom_histogram() + geom_vline(xin
 grid.arrange(tplot1, tplot2, tplot3, tplot4, tplot5, tplot6, tplot7, ncol = 2)
 ```
 
-## OLS multiple linear regression
-
-```{r ols}
-ols_mod <- lm(MP ~ TRB + AST + TOV + FTA + PTS + FG, data = nbaper36select)
-tableols = summary(ols_mod)$coefficients [,4]
-
-kable(round(tableols,4))%>% kable_styling(position = "center")
-
-```
-
-MP = 9.573 - 0.052 TRB + 1.185 AST - 1.884 TOV
-- 0.312 FTA + 0.963 PTS - 0.924 FG
 
 ## OLS multiple linear regression
 
@@ -509,4 +530,4 @@ kable(round(out10a,4))%>% kable_styling(position = "center")
 
 * The models tested seem to have similar values for $R^2$, $Adj R^2$, and $L1_{prop}$.
 
-* Future studies could examine different models for different positions, or the usage of other stats
+* Future studies could examine different models for different positions, the usage of other stats, or different filtering conditions
