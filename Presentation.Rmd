@@ -179,6 +179,39 @@ grid.arrange(kde1, kde2, kde3, kde4, kde5, kde6, kde7, ncol = 3)
 ```
 
 
+## Bootstrap
+
+```{r bootstrap}
+set.seed(1109)
+
+
+# function to obtain regression weights
+bs <- function(formula, data, indices) {
+  d <- data[indices,] # allows boot to select sample
+  fit <- lm(formula, data=d)
+  return(coef(fit))
+}
+# bootstrapping with 1000 replications
+results <- boot(data = nbaper36select, statistic=bs,
+   R=1000, formula = MP ~ TRB + AST + TOV + FTA + PTS + FG)
+
+# view results
+tvalues = as.data.frame(results[2])
+tnames = colnames(nbaper36select)[c(-1, -2)]
+colnames(tvalues) = c("Intercept", tnames)
+origtvalues = as.numeric(unlist(results$t0))
+
+tplot1 = ggplot(data = tvalues, aes(x = Intercept)) + geom_histogram() + geom_vline(xintercept = origtvalues[1])
+tplot2 = ggplot(data = tvalues, aes(x = TRB)) + geom_histogram() + geom_vline(xintercept = origtvalues[2])
+tplot3 = ggplot(data = tvalues, aes(x = AST)) + geom_histogram() + geom_vline(xintercept = origtvalues[3])
+tplot4 = ggplot(data = tvalues, aes(x = TOV)) + geom_histogram() + geom_vline(xintercept = origtvalues[4])
+tplot5 = ggplot(data = tvalues, aes(x = FTA)) + geom_histogram() + geom_vline(xintercept = origtvalues[5])
+tplot6 = ggplot(data = tvalues, aes(x = PTS)) + geom_histogram() + geom_vline(xintercept = origtvalues[6])
+tplot7 = ggplot(data = tvalues, aes(x = FG)) + geom_histogram() + geom_vline(xintercept = origtvalues[7])
+
+grid.arrange(tplot1, tplot2, tplot3, tplot4, tplot5, tplot6, tplot7, ncol = 2)
+```
+
 ## OLS multiple linear regression
 
 ```{r ols}
@@ -417,32 +450,6 @@ ks.test(x = resid(full_gam1), y = pnorm, mean = 0, sd = 5.670123)
 ```
 
 
-## Bootstrap
-
-```{r bootstrap}
-set.seed(1109)
-
-
-# function to obtain regression weights
-bs <- function(formula, data, indices) {
-  d <- data[indices,] # allows boot to select sample
-  fit <- lm(formula, data=d)
-  return(coef(fit))
-}
-# bootstrapping with 1000 replications
-results <- boot(data = nbaper36select, statistic=bs,
-   R=1000, formula = MP ~ TRB + AST + TOV + FTA + PTS + FG)
-
-# view results
-boot1 = plot(results, index=1) # intercept
-#boot2 = plot(results, index=2) # TRB
-#boot3 = plot(results, index=3) # AST
-#boot4 = plot(results, index=4) # TOV
-#boot5 = plot(results, index=5) # FTA
-#boot6 = plot(results, index=6) # PTS
-#boot7 = plot(results, index=7) # FG%
-
-```
 
 ```{r, echo = FALSE} 
 # get 95% confidence intervals
