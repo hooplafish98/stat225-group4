@@ -257,7 +257,7 @@ tableols_r = summary(ols_mod1)$coefficients[,c(1,4)]
 kable(round(tableols_r,4), col.names = c("Predictor", "P-Value"))%>% kable_styling(position = "center")
 ``` 
 
-MP = 9.3395 - 1.2937 AST + 2.3198 TOV
+MP = 9.3395 + 1.2937 AST - 2.3198 TOV +
 0.8941 PTS
 
 ## JHM Multiple Regression
@@ -282,7 +282,7 @@ tablejhm_r= summary(model_f1)$coefficients [,c(1,4)]
 kable(round(tablejhm_r,4), col.names = c("Predictor", "P-Value"))%>% kable_styling(position = "center")
 ```
 
-MP = 9.4239 - 1.2996 AST + 1.2995 TOV
+MP = 9.4239 + 1.2996 AST - 2.272 TOV +
 0.9083 PTS 
 
 ## Generalized Additive Model
