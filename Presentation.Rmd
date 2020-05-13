@@ -464,15 +464,32 @@ grid.arrange(plot7, plot8, plot9, plot10, ncol=2)
 AIC: `r AIC(full_gam1)`
 
 
+
 ## Residual Plots
+```{r ks test, include= FALSE}
 
-```{r ks test}
+jhmdataframe = data.frame(model_f1$residuals, model_f1$fitted.values)
+colnames(jhmdataframe) = c("Residuals", "Fitted_Values")
+
+olmdataframe = data.frame(ols_mod1$residuals, ols_mod1$fitted.values)
+colnames(olmdataframe) = c("Residuals", "Fitted_Values")
+
+gamdataframe = data.frame(full_gam1$residuals, full_gam1$fitted.values)
+colnames(gamdataframe) = c("Residuals", "Fitted_Values")
 
 
-mplot(ols_mod1, which= c(1))
-mplot(model_f1, which = c(1))
-mplot(full_gam1, which = c(1))
+olmresid = ggplot(data = olmdataframe, aes(x = Fitted_Values, y = Residuals)) +
+                    geom_point() + geom_smooth(method = lm, color = "red", width = "0.1") + labs(title = "OLM Residual vs Fitted")
 
+jhmresid = ggplot(data = jhmdataframe, aes(x = Fitted_Values, y = Residuals)) +
+                    geom_point() + geom_smooth(method = lm, color = "red", width = "0.1") + labs(title = "JHM Residual vs Fitted")
+
+gamresid = ggplot(data = gamdataframe, aes(x = Fitted_Values, y = Residuals)) +
+                    geom_point() + geom_smooth(method = lm, color = "red", width = "0.1") + labs(title = "GAM Residual vs Fitted")
+```
+
+```{r}
+grid.arrange(olmresid, jhmresid, gamresid, ncol = 2)
 ```
 
 
