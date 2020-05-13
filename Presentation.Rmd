@@ -16,6 +16,7 @@ library(gridExtra)
 library(knitr)
 library(kableExtra)
 library(stringr)
+options(scipen = 999)
 ```
 
 ```{r, include=FALSE}
@@ -137,7 +138,7 @@ GGally::ggpairs(select(nbaper36select, -Player))
 ```
 
 
-## Background/Motivations
+## Background & Motivations
 
 - We hope to predict minutes played through other types of basketball statistics.
 - Minutes played is valuable to keep track of because more minutes played will offer a player more opportunities to contribute to the game.
@@ -199,13 +200,13 @@ grid.arrange(splot1, splot2, splot3, splot4, splot5, splot6, ncol = 2)
 ```
 
 
-## OLS multiple linear regression
+## OLS Multiple Linear Regression
 
 ```{r ols}
 ols_mod <- lm(MP ~ TRB + AST + TOV + FTA + PTS + FG, data = nbaper36select)
-tableols = summary(ols_mod)$coefficients [,4]
+tableols = summary(ols_mod)$coefficients[,c(1,4)]
 
-kable(round(tableols,4))%>% kable_styling(position = "center")
+kable(round(tableols,4), col.names = c("Predictor", "P-Value"))%>% kable_styling(position = "center")
 
 ```
 
@@ -246,45 +247,45 @@ grid.arrange(tplot1, tplot2, tplot3, tplot4, tplot5, tplot6, tplot7, ncol = 2)
 ```
 
 
-## OLS multiple linear regression
+## OLS Multiple Linear Regression
 
 ```{r ols1}
 
 ols_mod1 <- lm(MP ~   AST + TOV  + PTS , data = nbaper36select)
-tableols_r = summary(ols_mod1)$coefficients [,4]
+tableols_r = summary(ols_mod1)$coefficients[,c(1,4)]
 
-kable(round(tableols_r,4))%>% kable_styling(position = "center")
+kable(round(tableols_r,4), col.names = c("Predictor", "P-Value"))%>% kable_styling(position = "center")
 ``` 
 
 MP = 9.3395 - 1.2937 AST + 2.3198 TOV
 0.8941 PTS
 
-## JHM multiple regression
+## JHM Multiple Regression
 
 ```{r jhm}
 model_f = rfit(data = nbaper36select, MP ~ TRB + AST + TOV + FTA + PTS + FG)
-tablejhm= summary(model_f)$coefficients [,4]
+tablejhm= summary(model_f)$coefficients [,c(1,4)]
 
-kable(round(tablejhm,4))%>% kable_styling(position = "center")
+kable(round(tablejhm,4), col.names = c("Predictor", "P-Value"))%>% kable_styling(position = "center")
 
 ```
 
 MP = 9.294 - 0.090 TRB + 1.176 AST - 1.764 TOV
 - 0.365 FTA + 0.987 PTS + 0.341 FG
 
-## JHM multiple regression
+## JHM Multiple Regression
 
 ```{r jhm1}
 model_f1 = rfit(data = nbaper36select, MP ~ AST + TOV + PTS)
-tablejhm_r= summary(model_f1)$coefficients [,4]
+tablejhm_r= summary(model_f1)$coefficients [,c(1,4)]
 
-kable(round(tablejhm_r,4))%>% kable_styling(position = "center")
+kable(round(tablejhm_r,4), col.names = c("Predictor", "P-Value"))%>% kable_styling(position = "center")
 ```
 
 MP = 9.4239 - 1.2996 AST + 1.2995 TOV
 0.9083 PTS 
 
-## Generalized additive model
+## Generalized Additive Model
 
 ```{r, include = FALSE}
 #reb spline
@@ -401,7 +402,7 @@ grid.arrange(plot1, plot2, plot3, plot4, plot5, plot6, ncol = 2)
 AIC: `r AIC(full_gam)`
 
 
-## Generalized additive model
+## Generalized Additive Model
 
 ```{r, include = FALSE}
 #gam1
@@ -521,7 +522,7 @@ boot.ci(results, type="bca", index=7) # FG%
 ```
 
 
-## Model Fit and CV (Full Models)
+## Model Fit CV (Both Models)
 
 ```{r, message = FALSE, warning = FALSE}
 out10 =cv_rmc(dat = nbaper36select, ols_mod = ols_mod, jhm_mod = model_f, gam_mod = full_gam)
