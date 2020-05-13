@@ -1,6 +1,6 @@
 ---
-title: "Untitled"
-author: ""
+title: "Predicting Player Minutes based on Per 36 Rate Statistics"
+author: "Group 4: Vignesh Mahalingam, Brandon Wang, Arjie Nanda"
 date: ""
 output: 
   pdf_document:
@@ -27,33 +27,204 @@ knitr::opts_chunk$set(
   tidy=FALSE,     # display code as typed
   size="small")   # slightly smaller font for code
 ```
+```{r, include=FALSE}
+#loaded the data here... not sure if we need to show this on a slide or not
 
-GROUP: Group 4
-MEMBERS: Vignesh Mahalingam, Brandon Wang, Arjie Nanda
-TITLE: Predicting Player Minutes based on Box Score Statistics
-PURPOSE: We plan on predicting minutes played through the other types of basketball statistics. Minutes played is a valuable stat because it keeps track of how often a player is on the court. More minutes played gives players more time to contribute to the game. We will use a combination of both counting stats and rate stats. We hypothesize that the counting stats will be positively correlated with minutes played, while the rate stats should have no relationship. It is certainly possible that players who have higher rate stats, like three point percentage, are more valuable and will play more minutes as a result. On the other hand, players who play fewer minutes could have better rates due to the increased variability in a smaller sample. 
-DATA: We are using the per 36 player data from the NBA’s 2018-19 season, which can be found at https://www.basketball-reference.com/leagues/NBA_2019_per_minute.html . This data is taken from the NBA’s own statistics page, and is a widely used industry source. Per 36 refers to adjusting the player’s statistics to project what their stats would be if the player played 36 minutes per game. We will be using the per 36 data as it provides a good insight into a player’s productivity without interference from the number of minutes played by the player.  
-POPULATION: The individual population units are players with a minimum of 41 games played, which is half the season. We’re trying to generalize this to future NBA seasons, as a method of estimating the average number of minutes played by a given player. We believe there are around 240 such players in the league.
+#Fit setup
+#Fit statistics for OLS
 
-RESPONSE VARIABLE(S): The number of minutes played per game. Self-evidently, this statistic is recorded in minutes. We know the range for this value stretches from 1 to around 45, although both extremes will be rare. This is because a regulation NBA game lasts for 48 minutes, but overtime can also play a role in inflating player minutes. The dataset provided does not have minutes played per game, instead having minutes played for the total season. We will create our response variable by dividing the number of minutes played by the number of games played.
+fit_ols = function(model) {
+  yy = model$residuals + model$fitted.values
+  rsq = 1- sum(model$residuals^2)/sum((yy- mean(yy))^2)
+  nn =length(yy)
+  adjrsq = 1-(1-rsq)*((nn-1)/(nn- length(model$coefficients)))
+  propL1 = 1- sum(abs(model$residuals))/sum(abs(yy- mean(yy)))
+  
+  return(cbind(rsq = rsq, adjrsq = adjrsq, propL1 = propL1))
+  }
 
-EXPLANATORY VARIABLES: All variables are measured by official NBA scorekeepers at the games.  Total rebounds in a 36 minute time period: This is the total offensive and defensive rebounds in a 36 minute time period. The unit is rebounds. Total blocks per 36 minutes, the unit is blocks.  Turnovers per 36 mins, the unit is turnovers. Free throw attempts per 36 min time period, the unit is free throw attempts. Points per 36 minutes, the unit is points.  Field goal percentage per game, the unit is percentage.
+#Fit statistics for JHM
 
-EXPLORATORY ANALYSIS:
+fit_jhm = function(model) {
+  rsq = 1- sum(model$residuals^2)/sum((model$y- mean(model$y))^2)
+  nn =length(model$y)
+  adjrsq = 1-(1-rsq)*((nn-1)/(nn- length(model$coefficients)))
+  propL1 = 1- sum(abs(model$residuals))/sum(abs(model$y- mean(model$y)))
+  
+  return(cbind(rsq = rsq, adjrsq = adjrsq, propL1 = propL1))
+  }
+
+#Fit statistics for GAM
+
+fit_gam = function(model) {
+  rsq = 1-model$deviance/model$null.deviance
+  adjrsq = 1-(1-rsq)*(model$df.null/model$df.residual)
+  propL1 = 1- sum(abs(model$residuals))/sum(abs(model$y- mean(model$y)))
+  
+  return(cbind(rsq = rsq, adjrsq = adjrsq, propL1 = propL1))}
+
+#CV setup
+
+#General fit statistics
+
+fit_gen = function(y, res, df){
+  rsq = 1- sum(res^2)/sum((y- mean(y))^2)
+  nn =length(y)
+  adjrsq = 1-(1-rsq)*((nn-1)/(nn-df))
+  propL1 = 1- sum(abs(res))/sum(abs(y- mean(y)))
+  
+  return(cbind(rsq = rsq, adjrsq = adjrsq, propL1 = propL1))
+  }
+
+#My cross-validation function for this project
+
+cv_rmc = function(dat, ols_mod, jhm_mod, gam_mod, k = 5, m = 10){
+  
+  #(Some) error checking
+  
+  if(class(ols_mod)!="lm")stop('ols_mod should come from the lm() function')
+  if(class(jhm_mod)!="rfit")stop('jhm_mod should come from the rfit() function')
+  if(class(gam_mod)[1]!="Gam")stop('gam_mod should come from the gam() function')
+  #Create model call character strings with subsetted data; uses stringr f()s
+  dat.name =paste0("data = ",deparse(substitute(dat)))
+  ols_call =capture.output(ols_mod$call)
+  ols_call =str_replace(ols_call, dat.name, "data = dat[-part[[i]], ]")
+  jhm_call =capture.output(jhm_mod$call)
+  jhm_call =str_replace(jhm_call, dat.name, "data = dat[-part[[i]], ]")
+  gam_call =paste(str_trim(capture.output(gam_mod$call)), sep="", collapse="")
+  gam_call =str_replace(gam_call, dat.name, "data = dat[-part[[i]], ]")
+  #Set up objects
+  ols_fit =matrix(nrow = m, ncol = 3)
+  jhm_fit = ols_fit; gam_fit = ols_fit
+  yy = jhm_mod$y
+  nn =dim(as.data.frame(dat))[1]
+  oos_lmres =vector(length = nn)
+  oos_jhres = oos_lmres; oos_gares = oos_lmres
+  df_ols =length(ols_mod$coefficients)
+  df_jhm =length(jhm_mod$coefficients)
+  df_gam = nn-gam_mod$df.residual
+  
+  #Repeat k-fold cross-validation m times
+  for(j in 1:m) {
+    #Split data into k equal-ish parts, with random indices
+    part =suppressWarnings(split(sample(nn), 1:k))
+    #Execute model calls for all k folds; %*% is matrix multiplication
+    for(i in 1:k){
+      lm_mod =eval(parse(text = ols_call))
+      pred =predict(object = lm_mod, newdata = dat[part[[i]],])
+      oos_lmres[part[[i]]] = yy[part[[i]]]-pred
+      jh_mod =eval(parse(text = jhm_call))
+      subdat =select(.data = dat,colnames(jh_mod$x)[-1])[part[[i]],]
+      subdat =cbind(1,as.matrix.data.frame(subdat))
+      pred = subdat%*%jh_mod$coefficients
+      oos_jhres[part[[i]]] = yy[part[[i]]]-pred
+      
+      ga_mod =eval(parse(text = gam_call))
+      pred =predict(object = ga_mod, newdata = dat[part[[i]],])
+      oos_gares[part[[i]]] = yy[part[[i]]]-pred
+      }
+    ols_fit[j, ] =fit_gen(y = yy, res = oos_lmres, df = df_ols)
+    jhm_fit[j, ] =fit_gen(y = yy, res = oos_jhres, df = df_jhm)
+    gam_fit[j, ] =fit_gen(y = yy, res = oos_gares, df = df_gam)}
+  #Manage output -- average fit statistics
+  outtie = rbind(colMeans(ols_fit),colMeans(jhm_fit),colMeans(gam_fit))
+  colnames(outtie) = paste0("cv.",colnames(fit_ols(lm_mod)))
+  row.names(outtie) =c("OLS", "JHM", "GAM")
+  
+  return(outtie)
+  }
+
+#Setup for everything else
+
+URL = "https://www.amherst.edu/system/files/media/SP20_S06_Group4_data.csv"
+nbaper36 <- read_csv(URL) #reads in csv #reads in csv
+totplayers = as.list(nbaper36 %>% filter(Tm == "TOT") %>% select(Player))#list of players on multiple teams in season
+nbaper36 = nbaper36 %>% mutate(MP = MP/G) %>% filter(G > 41) %>% filter(!(Player %in% totplayers$Player & Tm != "TOT")) #mutates MP to reflect minutes played per game, filters for players who played >41 games, and removes player entries that are not season totals
+nbaper36select = select(nbaper36, Player, MP, TRB, AST, TOV, FTA, PTS, 'FG%') %>% rename(FG = 'FG%')
+```
 
 
+In this report, we plan creating models for predicting minutes played through the other types of basketball statistics. Minutes played is a valuable stat because it keeps track of how often a player is on the court. More minutes played gives players more time to contribute to the game. We will use a combination of both counting stats and rate stats. We hypothesize that the counting stats will be positively correlated with minutes played, while the rate stats should have no relationship. It is certainly possible that players who have higher rate stats, like three point percentage, are more valuable and will play more minutes as a result. On the other hand, players who play fewer minutes could have better rates due to the increased variability in a smaller sample. We are using the per 36 player data from the NBA’s 2018-19 season, which can be found at https://www.basketball-reference.com/leagues/NBA_2019_per_minute.html . This data is taken from the NBA’s own statistics page, and is a widely used industry source. Per 36 refers to adjusting the player’s statistics to project what their stats would be if the player played 36 minutes per game. We will be using the per 36 data as it provides a good insight into a player’s productivity without interference from the number of minutes played by the player.  The individual population units are players with a minimum of 41 games played, which is half the season. We’re trying to generalize this to future NBA seasons, as a method of estimating the average number of minutes played by a given player. We believe there are around 240 such players in the league. We also decided to restrict our predictor variables to points, rebounds, assists, turnovers, free throws attempted, and field goal percentage, as these are common stats used in player evaluation. 
+
+##Exploratory Analysis
+
+We first decided to do some exploratory data analysis on our data. For the initial univariate data exploration, we settled on using Kernel Density Estimations (KDEs) with an Epanechnikov kernel and Sheather-Jones bandwidth. We felt these KDEs would be most appropriate as they hold no assumptions about the underlying distribution of the data. 
+
+```{r kde}
+kde1 = ggplot(data = nbaper36select, aes(MP)) +
+  geom_density(bw = "SJ", kernel = "epanechnikov", size = 2)
+
+
+kde2 = ggplot(data = nbaper36select, aes(TRB)) +
+  geom_density(bw = "SJ", kernel = "epanechnikov", size = 2)
+
+
+kde3 = ggplot(data = nbaper36select, aes(AST)) +
+  geom_density(bw = "SJ", kernel = "epanechnikov", size = 2)
+
+
+kde4 = ggplot(data = nbaper36select, aes(TOV)) +
+  geom_density(bw = "SJ", kernel = "epanechnikov", size = 2)
+
+
+kde5 = ggplot(data = nbaper36select, aes(FTA)) +
+  geom_density(bw = "SJ", kernel = "epanechnikov", size = 2)
+
+
+kde6 = ggplot(data = nbaper36select, aes(PTS)) +
+  geom_density(bw = "SJ", kernel = "epanechnikov", size = 2)
+
+
+kde7 = ggplot(data = nbaper36select, aes(FG)) +
+  geom_density(bw = "SJ", kernel = "epanechnikov", size = 2)
+
+grid.arrange(kde1, kde2, kde3, kde4, kde5, kde6, kde7, ncol = 3)
+```
+
+From the KDEs we can see a marked difference in the KDEs of the predictor variables and the response variables. The predictor variables have distributions with early peaks and long tails, illustrating that the bulk of NBA players have average stats, with only a few players having lower rate statistics and relatively more players having higher rate statistics as compared to the mean. The `MP` KDE shows a much different pattern, instead having a slightly bimodal distribution that corresponds with the minutes played for bench players and starters.
+
+We also created a series of scatterplots comparing `MP` with each predictor variable. 
 ```{r}
+<<<<<<< HEAD
 URL = "https://www.amherst.edu/system/files/media/SP20_S06_Group4_data.csv"
 nbaper36 <- read_csv(URL) #reads in csv #reads in csv
 totplayers = as.list(nbaper36 %>% filter(Tm == "TOT") %>% select(Player))#list of players on multiple teams in season
 nbaper36 = nbaper36 %>% mutate(MP = MP/G) %>% filter(G > 41) %>% filter(!(Player %in% totplayers$Player & Tm != "TOT")) #mutates MP to reflect minutes played per game, filters for players who played >41 games, and removes player entries that are not season totals
 nbaper36select = select(nbaper36, Player, MP, TRB, AST, TOV, FTA, PTS, 'FG%') %>% rename(FG = 'FG%')
 
+=======
+splot1 <- ggplot(data = nbaper36select, aes(x = TRB, y = MP)) + 
+  geom_point()
 
-GGally::ggpairs(select(nbaper36select, -Player))
+splot2 <- ggplot(data = nbaper36select, aes(x = AST, y = MP)) + 
+  geom_point()
+splot3 <- ggplot(data = nbaper36select, aes(x = TOV, y = MP)) + 
+  geom_point()
+splot4 <- ggplot(data = nbaper36select, aes(x = FTA, y = MP)) + 
+  geom_point()
+splot5 <- ggplot(data = nbaper36select, aes(x = PTS, y = MP)) + 
+  geom_point()
+splot6 <- ggplot(data = nbaper36select, aes(x = FG, y = MP)) + 
+  geom_point()
+
+grid.arrange(splot1, splot2, splot3, splot4, splot5, splot6, ncol = 2)
 ```
+From this we can see that some of the variables have a positive relationship with `MP`, while some have a relationship that is more variable.
 
-```{r bootstrap}
+
+## OLM and Bootstrap
+>>>>>>> 00e37acb971d56c45256ce402fa3702e22ca4bab
+
+```{r}
+#OLM
+model_olm = lm(data = nbaper36, MP ~ TRB + BLK + TOV + FTA + PTS + FG)
+summary(model_olm) # Only PTS is significant s
+```
+*Insert stuff about OLM kitchen sink here*
+
+We also ran a bootstrap on the kitchen sink OLM to see if the relationship between the predictor variables is or is not impacted by bootstrapping. We ran the bootstrap with 1000 repetitions, getting a histogram for the t statistic for each OLM coefficient.
+
+```{r bootstrap, warning=FALSE, message=FALSE}
 set.seed(1109)
 
 
@@ -65,35 +236,34 @@ bs <- function(formula, data, indices) {
 }
 # bootstrapping with 1000 replications
 results <- boot(data = nbaper36select, statistic=bs,
-   R=1000, formula = MP ~ TRB + BLK + TOV + FTA + PTS + FG)
+   R=1000, formula = MP ~ TRB + AST + TOV + FTA + PTS + FG)
 
 # view results
-results
-plot(results, index=1) # intercept
-plot(results, index=2) # TRB
-plot(results, index=3) # BLK
-plot(results, index=4) # TOV
-plot(results, index=5) # FTA
-plot(results, index=6) # PTS
-plot(results, index=7) # FG%
+tvalues = as.data.frame(results[2])
+tnames = colnames(nbaper36select)[c(-1, -2)]
+colnames(tvalues) = c("Intercept", tnames)
+origtvalues = as.numeric(unlist(results$t0))
 
+tplot1 = ggplot(data = tvalues, aes(x = Intercept)) + geom_histogram() + geom_vline(xintercept = origtvalues[1])
+tplot2 = ggplot(data = tvalues, aes(x = TRB)) + geom_histogram() + geom_vline(xintercept = origtvalues[2])
+tplot3 = ggplot(data = tvalues, aes(x = AST)) + geom_histogram() + geom_vline(xintercept = origtvalues[3])
+tplot4 = ggplot(data = tvalues, aes(x = TOV)) + geom_histogram() + geom_vline(xintercept = origtvalues[4])
+tplot5 = ggplot(data = tvalues, aes(x = FTA)) + geom_histogram() + geom_vline(xintercept = origtvalues[5])
+tplot6 = ggplot(data = tvalues, aes(x = PTS)) + geom_histogram() + geom_vline(xintercept = origtvalues[6])
+tplot7 = ggplot(data = tvalues, aes(x = FG)) + geom_histogram() + geom_vline(xintercept = origtvalues[7])
 
-
-# get 95% confidence intervals
-boot.ci(results, type="bca", index=1) # intercept
-boot.ci(results, type="bca", index=2) # TRB
-boot.ci(results, type="bca", index=3) # BLK
-boot.ci(results, type="bca", index=4) # TOV
-boot.ci(results, type="bca", index=5) # FTA
-boot.ci(results, type="bca", index=6) # PTS
-boot.ci(results, type="bca", index=7) # FG%
+grid.arrange(tplot1, tplot2, tplot3, tplot4, tplot5, tplot6, tplot7, ncol = 2)
 ```
 
+<<<<<<< HEAD
 ```{r}
 #OLM
 model_olm = lm(data = nbaper36select, MP ~ TRB + AST + TOV + FTA + PTS + FG)
 summary(model_olm) # Only PTS is significant s
 ```
+=======
+From this, we can see that the t-statistic for `TRB`, `FG`, and `FTA` are not indicative of predictive value, white the t-statistic for `PTS`, `AST`, and `TOV` are.
+>>>>>>> 00e37acb971d56c45256ce402fa3702e22ca4bab
 
 
 ## Full OLS Multiple Regression Test
