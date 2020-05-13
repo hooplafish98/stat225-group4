@@ -374,8 +374,10 @@ plot6 <- ggplot(data = nbaper36select, aes(x = FG, y = MP)) +
 #graphing gam
 grid.arrange(plot1, plot2, plot3, plot4, plot5, plot6, ncol = 2)
 
-AIC(full_gam)
+#AIC(full_gam)
 ```
+
+AIC: `r AIC(full_gam)`
 
 
 ## Generalized additive model
@@ -435,8 +437,10 @@ plot10 <- ggplot(data = nbaper36select, aes(x = FG, y = MP)) +
 ```{r}
 grid.arrange(plot7, plot8, plot9, plot10, ncol=2)
 
-AIC(full_gam1)
+#AIC(full_gam1)
 ```
+
+AIC: `r AIC(full_gam1)`
 
 
 ## Residual Plots
@@ -463,11 +467,11 @@ kable(round(olsks_t,4))%>% kable_styling(position = "center")
 
 
 ```
+
 Not enough evidence to say the residual distributions stray from Normal.
 
-```
 
-```{r, echo = FALSE} 
+```{r, include = FALSE} 
 # get 95% confidence intervals
 boot.ci(results, type="bca", index=1) # intercept
 boot.ci(results, type="bca", index=2) # TRB
