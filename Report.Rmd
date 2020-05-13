@@ -1,0 +1,277 @@
+---
+title: "Untitled"
+author: ""
+date: ""
+output: 
+  pdf_document:
+    fig_height: 3
+    fig_width: 5
+  html_document:
+    fig_height: 3
+    fig_width: 5
+  word_document:
+    fig_height: 3
+    fig_width: 5
+---
+
+```{r, setup, include=FALSE}
+require(mosaic)   # Load additional packages here 
+library(readr)
+library(boot) #for bootstrap
+library(Rfit)
+library(ggplot2)
+library(gam)
+library(splines)
+library(gridExtra)
+knitr::opts_chunk$set(
+  tidy=FALSE,     # display code as typed
+  size="small")   # slightly smaller font for code
+```
+
+GROUP: Group 4
+MEMBERS: Vignesh Mahalingam, Brandon Wang, Arjie Nanda
+TITLE: Predicting Player Minutes based on Box Score Statistics
+PURPOSE: We plan on predicting minutes played through the other types of basketball statistics. Minutes played is a valuable stat because it keeps track of how often a player is on the court. More minutes played gives players more time to contribute to the game. We will use a combination of both counting stats and rate stats. We hypothesize that the counting stats will be positively correlated with minutes played, while the rate stats should have no relationship. It is certainly possible that players who have higher rate stats, like three point percentage, are more valuable and will play more minutes as a result. On the other hand, players who play fewer minutes could have better rates due to the increased variability in a smaller sample. 
+DATA: We are using the per 36 player data from the NBA’s 2018-19 season, which can be found at https://www.basketball-reference.com/leagues/NBA_2019_per_minute.html . This data is taken from the NBA’s own statistics page, and is a widely used industry source. Per 36 refers to adjusting the player’s statistics to project what their stats would be if the player played 36 minutes per game. We will be using the per 36 data as it provides a good insight into a player’s productivity without interference from the number of minutes played by the player.  
+POPULATION: The individual population units are players with a minimum of 41 games played, which is half the season. We’re trying to generalize this to future NBA seasons, as a method of estimating the average number of minutes played by a given player. We believe there are around 240 such players in the league.
+
+RESPONSE VARIABLE(S): The number of minutes played per game. Self-evidently, this statistic is recorded in minutes. We know the range for this value stretches from 1 to around 45, although both extremes will be rare. This is because a regulation NBA game lasts for 48 minutes, but overtime can also play a role in inflating player minutes. The dataset provided does not have minutes played per game, instead having minutes played for the total season. We will create our response variable by dividing the number of minutes played by the number of games played.
+
+EXPLANATORY VARIABLES: All variables are measured by official NBA scorekeepers at the games.  Total rebounds in a 36 minute time period: This is the total offensive and defensive rebounds in a 36 minute time period. The unit is rebounds. Total blocks per 36 minutes, the unit is blocks.  Turnovers per 36 mins, the unit is turnovers. Free throw attempts per 36 min time period, the unit is free throw attempts. Points per 36 minutes, the unit is points.  Field goal percentage per game, the unit is percentage.
+
+EXPLORATORY ANALYSIS:
+
+
+```{r}
+nbaper36 <- read_csv("nbaper36.csv") #reads in csv
+totplayers = as.list(nbaper36 %>% filter(Tm == "TOT") %>% select(Player))#list of players on multiple teams in season
+nbaper36 = nbaper36 %>% mutate(MP = MP/G) %>% filter(G > 41) %>% filter(!(Player %in% totplayers$Player & Tm != "TOT")) #mutates MP to reflect minutes played per game, filters for players who played >41 games, and removes player entries that are not season totals
+nbaper36select = select(nbaper36, Player, MP, TRB, BLK, TOV, FTA, PTS, 'FG%') %>% rename(FG = 'FG%')
+
+GGally::ggpairs(select(nbaper36select, -Player))
+```
+
+```{r bootstrap}
+set.seed(1109)
+
+
+# function to obtain regression weights
+bs <- function(formula, data, indices) {
+  d <- data[indices,] # allows boot to select sample
+  fit <- lm(formula, data=d)
+  return(coef(fit))
+}
+# bootstrapping with 1000 replications
+results <- boot(data = nbaper36select, statistic=bs,
+   R=1000, formula = MP ~ TRB + BLK + TOV + FTA + PTS + FG)
+
+# view results
+results
+plot(results, index=1) # intercept
+plot(results, index=2) # TRB
+plot(results, index=3) # BLK
+plot(results, index=4) # TOV
+plot(results, index=5) # FTA
+plot(results, index=6) # PTS
+plot(results, index=7) # FG%
+
+
+
+# get 95% confidence intervals
+boot.ci(results, type="bca", index=1) # intercept
+boot.ci(results, type="bca", index=2) # TRB
+boot.ci(results, type="bca", index=3) # BLK
+boot.ci(results, type="bca", index=4) # TOV
+boot.ci(results, type="bca", index=5) # FTA
+boot.ci(results, type="bca", index=6) # PTS
+boot.ci(results, type="bca", index=7) # FG%
+```
+
+```{r}
+#OLM
+model_olm = lm(data = nbaper36, MP ~ TRB + BLK + TOV + FTA + PTS + FG)
+summary(model_olm) # Only PTS is significant s
+```
+
+```{r}
+# JHM
+model_f = rfit(data = nbaper36select, MP ~ TRB + BLK + TOV + FTA + PTS + FG)
+summary(model_f)$coefficients
+simp_mod <- rfit(MP ~ PTS, data = nbaper36select)
+#drop.test(model_f, simp_mod)
+
+part_mod <- rfit(MP~ PTS + TRB, data=nbaper36select)
+drop.test(model_f, part_mod)
+```
+
+Super high p value here... probably can drop everything except TRB and PTS.
+
+```{r}
+ggplot(data = nbaper36select, aes(MP)) +
+  geom_density(bw = "SJ", kernel = "epanechnikov", size = 2)
+
+
+ggplot(data = nbaper36select, aes(TRB)) +
+  geom_density(bw = "SJ", kernel = "epanechnikov", size = 2)
+
+
+ggplot(data = nbaper36select, aes(BLK)) +
+  geom_density(bw = "SJ", kernel = "epanechnikov", size = 2)
+
+
+ggplot(data = nbaper36select, aes(TOV)) +
+  geom_density(bw = "SJ", kernel = "epanechnikov", size = 2)
+
+
+ggplot(data = nbaper36select, aes(FTA)) +
+  geom_density(bw = "SJ", kernel = "epanechnikov", size = 2)
+
+
+ggplot(data = nbaper36select, aes(PTS)) +
+  geom_density(bw = "SJ", kernel = "epanechnikov", size = 2)
+
+
+ggplot(data = nbaper36select, aes(FG)) +
+  geom_density(bw = "SJ", kernel = "epanechnikov", size = 2)
+```
+
+```{r}
+#ols
+ols_mod <- lm(MP ~ TRB + BLK + TOV + FTA + PTS + FG, data = nbaper36select)
+summary(ols_mod)
+```
+
+```{r}
+#reb spline
+simp_reb <- lm(MP ~ TRB, data = nbaper36select)
+s_reb <- gam(MP ~ s(TRB), data = nbaper36select)
+AIC(simp_reb) 
+AIC(s_reb) #slightly lower aic
+```
+
+```{r}
+#ast spline
+simp_ast <- lm(MP ~ AST, data = nbaper36select)
+s_ast <- gam(MP ~ s(AST), data = nbaper36select)
+AIC(simp_ast) #lower aic
+AIC(s_ast) 
+```
+
+```{r}
+#tov spline
+simp_tov <- lm(MP ~ TOV, data = nbaper36select)
+s_tov <- gam(MP ~ s(TOV), data = nbaper36select)
+AIC(simp_tov) #slightly lower aic
+AIC(s_tov)
+```
+
+```{r}
+#fta spline
+simp_fta <- lm(MP ~ FTA, data = nbaper36select)
+s_fta <- gam(MP ~ s(FTA), data = nbaper36select)
+AIC(simp_fta) #slightly lower aic
+AIC(s_fta)
+```
+
+```{r}
+#pts spline
+simp_pts <- lm(MP ~ PTS, data = nbaper36select)
+s_pts <- gam(MP ~ s(PTS), data = nbaper36select)
+AIC(simp_pts) 
+AIC(s_pts) #slightly lower aic
+```
+
+```{r}
+#fg spline
+simp_fg <- lm(MP ~ FG, data = nbaper36select)
+s_fg <- gam(MP ~ s(FG), data = nbaper36select)
+AIC(simp_fg) 
+AIC(s_fg) #lower aic
+```
+
+```{r}
+
+sd(resid(ols_mod))
+
+ks.test(x = resid(ols_mod), y = pnorm, mean = 0, sd = 5.96654)
+
+#JHM
+
+sd(resid(model_f))
+
+ks.test(x = resid(model_f), y = pnorm, mean = 0, sd = 5.968016)
+
+
+sd(resid(full_gam))
+
+ks.test(x = resid(full_gam), y = pnorm, mean = 0, sd = 5.670123)
+
+```
+
+```{r}
+#gam
+full_gam <- gam(MP ~ s(TRB) + AST + TOV + FTA + s(PTS) + s(FG), data = nbaper36select)
+full_gam_c = predict(full_gam, type = "terms")
+full_gam_y <- fitted(full_gam)
+nba_sub <- select(.data = nbaper36select, MP, TRB, AST, TOV, FTA, PTS, FG)
+
+mp_m = mean(nbaper36select$MP)
+
+fullgam_plots <- cbind(nba_sub, full_gam_c, full_gam_y)
+cnn <- c(colnames(nba_sub), "trb_pred", "blk_pred", "tov_pred", "fta_pred", "pts_pred", "fg_pred","mp_pred")
+colnames(fullgam_plots) <- cnn
+```
+
+```{r}
+#creating gam plots
+plot1 <- ggplot(data = nbaper36select, aes(x = TRB, y = MP)) + 
+  geom_point() + 
+  geom_hline(yintercept = mp_m, linetype = 2, color = "blue") + 
+  geom_line(inherit.aes = F, size = 2, color = "gold", data = fullgam_plots,
+            aes(x = TRB, y = trb_pred + mp_m))
+
+plot2 <- ggplot(data = nbaper36select, aes(x = AST, y = MP)) + 
+  geom_point() + 
+  geom_hline(yintercept = mp_m, linetype = 2, color = "blue") + 
+  geom_line(inherit.aes = F, size = 2, color = "gold", data = fullgam_plots,
+            aes(x = AST, y = blk_pred + mp_m))
+
+plot3 <- ggplot(data = nbaper36select, aes(x = TOV, y = MP)) + 
+  geom_point() + 
+  geom_hline(yintercept = mp_m, linetype = 2, color = "blue") + 
+  geom_line(inherit.aes = F, size = 2, color = "gold", data = fullgam_plots,
+            aes(x = TOV, y = tov_pred + mp_m))
+
+plot4 <- ggplot(data = nbaper36select, aes(x = FTA, y = MP)) + 
+  geom_point() + 
+  geom_hline(yintercept = mp_m, linetype = 2, color = "blue") + 
+  geom_line(inherit.aes = F, size = 2, color = "gold", data = fullgam_plots,
+            aes(x = FTA, y = fta_pred + mp_m))
+
+plot5 <- ggplot(data = nbaper36select, aes(x = PTS, y = MP)) + 
+  geom_point() + 
+  geom_hline(yintercept = mp_m, linetype = 2, color = "blue") + 
+  geom_line(inherit.aes = F, size = 2, color = "gold", data = fullgam_plots,
+            aes(x = PTS, y = pts_pred + mp_m))
+
+plot6 <- ggplot(data = nbaper36select, aes(x = FG, y = MP)) + 
+  geom_point() + 
+  geom_hline(yintercept = mp_m, linetype = 2, color = "blue") + 
+  geom_line(inherit.aes = F, size = 2, color = "gold", data = fullgam_plots,
+            aes(x = FG, y = fg_pred + mp_m))
+```
+
+```{r}
+#graphing gam
+
+grid.arrange(plot1, plot2, plot3, plot4, plot5, plot6, ncol = 2)
+
+```
+
+```{r}
+full_gam1 <- gam(MP ~ s(TRB) + AST + TOV + s(PTS) + s(FG), data = nbaper36select)
+AIC(full_gam) 
+AIC(full_gam1)
+```
+
+
