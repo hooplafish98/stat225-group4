@@ -143,8 +143,10 @@ nbaper36 = nbaper36 %>% mutate(MP = MP/G) %>% filter(G > 41) %>% filter(!(Player
 nbaper36select = select(nbaper36, Player, MP, TRB, AST, TOV, FTA, PTS, 'FG%') %>% rename(FG = 'FG%')
 ```
 
+## Introduction 
 
 In this report, we plan creating models for predicting minutes played through the other types of basketball statistics. Minutes played is a valuable stat because it keeps track of how often a player is on the court. More minutes played gives players more time to contribute to the game. We will use a combination of both counting stats and rate stats. We hypothesize that the counting stats will be positively correlated with minutes played, while the rate stats should have no relationship. It is certainly possible that players who have higher rate stats, like three point percentage, are more valuable and will play more minutes as a result. On the other hand, players who play fewer minutes could have better rates due to the increased variability in a smaller sample. We are using the per 36 player data from the NBA’s 2018-19 season, which can be found at https://www.basketball-reference.com/leagues/NBA_2019_per_minute.html . This data is taken from the NBA’s own statistics page, and is a widely used industry source. Per 36 refers to adjusting the player’s statistics to project what their stats would be if the player played 36 minutes per game. We will be using the per 36 data as it provides a good insight into a player’s productivity without interference from the number of minutes played by the player.  The individual population units are players with a minimum of 41 games played, which is half the season. We’re trying to generalize this to future NBA seasons, as a method of estimating the average number of minutes played by a given player. We believe there are around 240 such players in the league. We also decided to restrict our predictor variables to points, rebounds, assists, turnovers, free throws attempted, and field goal percentage, as these are common stats used in player evaluation. 
+
 
 ##Exploratory Analysis
 
@@ -184,15 +186,8 @@ grid.arrange(kde1, kde2, kde3, kde4, kde5, kde6, kde7, ncol = 3)
 From the KDEs we can see a marked difference in the KDEs of the predictor variables and the response variables. The predictor variables have distributions with early peaks and long tails, illustrating that the bulk of NBA players have average stats, with only a few players having lower rate statistics and relatively more players having higher rate statistics as compared to the mean. The `MP` KDE shows a much different pattern, instead having a slightly bimodal distribution that corresponds with the minutes played for bench players and starters.
 
 We also created a series of scatterplots comparing `MP` with each predictor variable. 
-```{r}
-<<<<<<< HEAD
-URL = "https://www.amherst.edu/system/files/media/SP20_S06_Group4_data.csv"
-nbaper36 <- read_csv(URL) #reads in csv #reads in csv
-totplayers = as.list(nbaper36 %>% filter(Tm == "TOT") %>% select(Player))#list of players on multiple teams in season
-nbaper36 = nbaper36 %>% mutate(MP = MP/G) %>% filter(G > 41) %>% filter(!(Player %in% totplayers$Player & Tm != "TOT")) #mutates MP to reflect minutes played per game, filters for players who played >41 games, and removes player entries that are not season totals
-nbaper36select = select(nbaper36, Player, MP, TRB, AST, TOV, FTA, PTS, 'FG%') %>% rename(FG = 'FG%')
 
-=======
+```{r}
 splot1 <- ggplot(data = nbaper36select, aes(x = TRB, y = MP)) + 
   geom_point()
 
@@ -209,18 +204,17 @@ splot6 <- ggplot(data = nbaper36select, aes(x = FG, y = MP)) +
 
 grid.arrange(splot1, splot2, splot3, splot4, splot5, splot6, ncol = 2)
 ```
+
 From this we can see that some of the variables have a positive relationship with `MP`, while some have a relationship that is more variable.
 
 
 ## OLM and Bootstrap
->>>>>>> 00e37acb971d56c45256ce402fa3702e22ca4bab
 
 ```{r}
 #OLM
 model_olm = lm(data = nbaper36, MP ~ TRB + BLK + TOV + FTA + PTS + FG)
 summary(model_olm) # Only PTS is significant s
 ```
-*Insert stuff about OLM kitchen sink here*
 
 We also ran a bootstrap on the kitchen sink OLM to see if the relationship between the predictor variables is or is not impacted by bootstrapping. We ran the bootstrap with 1000 repetitions, getting a histogram for the t statistic for each OLM coefficient.
 
@@ -255,15 +249,7 @@ tplot7 = ggplot(data = tvalues, aes(x = FG)) + geom_histogram() + geom_vline(xin
 grid.arrange(tplot1, tplot2, tplot3, tplot4, tplot5, tplot6, tplot7, ncol = 2)
 ```
 
-<<<<<<< HEAD
-```{r}
-#OLM
-model_olm = lm(data = nbaper36select, MP ~ TRB + AST + TOV + FTA + PTS + FG)
-summary(model_olm) # Only PTS is significant s
-```
-=======
 From this, we can see that the t-statistic for `TRB`, `FG`, and `FTA` are not indicative of predictive value, white the t-statistic for `PTS`, `AST`, and `TOV` are.
->>>>>>> 00e37acb971d56c45256ce402fa3702e22ca4bab
 
 
 ## Full OLS Multiple Regression Test
@@ -276,9 +262,16 @@ Where $\beta_1$ is the effect of points on minutes played, $\beta_2$ is the effe
 We will be using a significance level of $\alpha = 0.05$
 
 ```{r}
+#OLM
+model_olm = lm(data = nbaper36select, MP ~ TRB + AST + TOV + FTA + PTS + FG)
+summary(model_olm) 
+```
+
+```{r}
 #Residual Plot
 mplot(model_olm, which = c(1))
 ```
+
 Conditions:
 As illustrated by the residual vs fitted plot, the residuals are approximately normally distributed as there is random scatter throughout the distribution. The plot all illuysrates the condition of equal variance being met as the variance is quite variable throughout the entirety of the data. We can also say that the data are independent of one another as one player's statistics are not influenced by that of another player.
 
@@ -299,16 +292,13 @@ ols_mod1 <- lm(MP ~   AST + TOV  + PTS , data = nbaper36select)
 summary(ols_mod1)
 ```
 
-
 ```{r}
 mplot(ols_mod1, which = c(1))
 ```
 Conditions:
 As illustrated by the residual vs fitted plot, the residuals are approximately normally distributed as there is random scatter throughout the distribution. The plot all illuysrates the condition of equal variance being met as the variance is quite variable throughout the entirety of the data. We can also say that the data are independent of one another as one player's statistics are not influenced by that of another player.
 
-
 The F- Statistic is 64.3 on 3 and 345 degrees of freedom, with an assocaited p-value less than 0.0001, so at the signficance level of $\alpha = 0.05$, the model is singifiance and we have significant evidence to reject the $H_0$ and claimed that $\exists \beta_j \ni [\beta_1, \beta_2, \beta_3] s.t. \beta_j \neq 0$.
-
 
 
 ## Full JHM Model
@@ -319,14 +309,15 @@ $H_A: \exists \beta_j \ni [\beta_1, \beta_2, \beta_3, \beta_4, \beta_5, \beta_6]
 Where $\beta_1$ is the effect of points on minutes played, $\beta_2$ is the effect of turnovers on minutes played,  $\beta_3$ is the effect of field goal percentage on minutes played, $\beta_4$ is the effect of total rebounds on minutes played, $\beta_5$ is the effect of assists on minutes played, and  $\beta_6$ is the effect of free throw attemps on minutes played.
 
 We will be using a significance level of $\alpha = 0.05$
+
 ```{r}
 model_f = rfit(data = nbaper36select, MP ~ TRB + AST + TOV + FTA + PTS + FG)
 summary(model_f)
 ```
+
 Conditions: There are no conditions for the nonparametric JHM hypothesis test, aside from the fact that the data are independent. We can say this condition is met as one player's statistics are not influenced by others.
 
 The Wald Statistic has a value of 188.9863 with an associated p-value of esentially 0, so we have significant evidence to reject the $H_0$ and say that $\exists \beta_j \ni [\beta_1, \beta_2, \beta_3, \beta_4, \beta_5, \beta_6] s.t. \beta_j \neq 0$. 
-
 
 
 ## Reduced JHM Model
@@ -343,75 +334,48 @@ We will be using a significance level of $\alpha = 0.05$
 model_f1 = rfit(data = nbaper36select, MP ~ AST + TOV + PTS)
 summary(model_f1)
 ```
-Conditions: There are no conditions for the nonparametric JHM hypothesis test, aside from the fact that the data are independent. We can say this condition is met as one player's statistics are not influenced by others.
 
+Conditions: There are no conditions for the nonparametric JHM hypothesis test, aside from the fact that the data are independent. We can say this condition is met as one player's statistics are not influenced by others.
 
 The Wald Statistic has a value of 188.395 with an associated p-value of esentially 0, so we have significant evidence to reject the $H_0$ and say that 
 $\exists \beta_j \ni [\beta_1, \beta_2, \beta_3] s.t. \beta_j \neq 0$.
 
 
-##JHM
-```{r}
-# JHM
-model_f = rfit(data = nbaper36select, MP ~ TRB + BLK + TOV + FTA + PTS + FG)
-summary(model_f)$coefficients
-simp_mod <- rfit(MP ~ PTS, data = nbaper36select)
-#drop.test(model_f, simp_mod)
+## GAM
 
-part_mod <- rfit(MP~ PTS + TRB, data=nbaper36select)
-drop.test(model_f, part_mod)
-```
+Once we fit these models, we fit a generalized additive model (GAM) on the data. Initially, we created a smoothing spline and simple linear regression (SLR) for each of our six predictors. For each predictor, we compared the AIC of the smoothing spline vs the SLR and chose the method that produced a better fit. Once we had the best fit for all of our predictors, we built a GAM using those fits. The full GAM with all predictors is plotted below.
 
-Super high p value here... probably can drop everything except TRB and PTS.
-
-
-```{r}
-#ols
-ols_mod <- lm(MP ~ TRB + BLK + TOV + FTA + PTS + FG, data = nbaper36select)
-summary(ols_mod)
-```
-
-```{r}
+```{r, include = FALSE}
 #reb spline
 simp_reb <- lm(MP ~ TRB, data = nbaper36select)
 s_reb <- gam(MP ~ s(TRB), data = nbaper36select)
 AIC(simp_reb) 
-AIC(s_reb) #slightly lower aic
-```
+AIC(s_reb) #lower aic
 
-```{r}
 #ast spline
 simp_ast <- lm(MP ~ AST, data = nbaper36select)
 s_ast <- gam(MP ~ s(AST), data = nbaper36select)
 AIC(simp_ast) #lower aic
 AIC(s_ast) 
-```
 
-```{r}
 #tov spline
 simp_tov <- lm(MP ~ TOV, data = nbaper36select)
 s_tov <- gam(MP ~ s(TOV), data = nbaper36select)
-AIC(simp_tov) #slightly lower aic
+AIC(simp_tov) #lower aic
 AIC(s_tov)
-```
 
-```{r}
 #fta spline
 simp_fta <- lm(MP ~ FTA, data = nbaper36select)
 s_fta <- gam(MP ~ s(FTA), data = nbaper36select)
-AIC(simp_fta) #slightly lower aic
+AIC(simp_fta) #lower aic
 AIC(s_fta)
-```
 
-```{r}
 #pts spline
 simp_pts <- lm(MP ~ PTS, data = nbaper36select)
 s_pts <- gam(MP ~ s(PTS), data = nbaper36select)
 AIC(simp_pts) 
-AIC(s_pts) #slightly lower aic
-```
+AIC(s_pts) #lower aic
 
-```{r}
 #fg spline
 simp_fg <- lm(MP ~ FG, data = nbaper36select)
 s_fg <- gam(MP ~ s(FG), data = nbaper36select)
@@ -419,80 +383,7 @@ AIC(simp_fg)
 AIC(s_fg) #lower aic
 ```
 
-```{r}
-# OLS KS Test Residual Plot
-mplot(ols_mod1, which = c(1))
-
-```
-```{r}
-#OLS KS Code
-ks.test(x = resid(ols_mod), y = pnorm, mean = 0, sd = 5.796699)
-```
-$H_0:$ F(t) = G(t) for all t.
-
-$H_A:$ F(t) $\neq$ G(t) for at least one t.
-
-where F is the normal CDF of mean zero and standard deviation 5.7967 and G is the distribution of the residuals of the reduced ols.
-
-We will be using a significance level of $\alpha = 0.05$
-
-Conditions: There is independence in the distributions and the data comes from a continuous population. For both the normal and residual distribution, we can say they are continuous. We all can assume independence. 
-
-The test-statistic, D-value, generated by the Kolmogorov-Smirnov test is 0.049634 with an associated p-value of 0.3562. At the significance level of $\alpha = 0.05$, this indicates we do not have significant evidence to reject the $H_0$ and claim the residuals follow a roughly normal distribution.
-
-
-```{r}
-jhmresid = ggplot(data = jhmdataframe, aes(x = Fitted_Values, y = Residuals)) +
-                    geom_point() + geom_smooth(method = lm, color = "red") + labs(title = "JHM Residual vs Fitted")
-
-plot(jhmresid)
-```
-
-
-$H_0:$ F(t) = G(t) for all t.
-
-$H_A:$ F(t) $\neq$ G(t) for at least one t.
-
-where F is the normal CDF of mean zero and standard deviation 5.7975 and G is the distribution of the residuals of the reduced JHM model
-
-We will be using a significance level of $\alpha = 0.05$
-
-Conditions: There is independence in the distributions and the data comes from a continuous population. For both the normal and residual distribution, we can say they are continuous. We all can assume independence. 
-
-The test-statistic, D-value, generated by the Kolmogorov-Smirnov test is 0.046003 with an associated p-value of 0.4511 At the significance level of $\alpha = 0.05$, this indicates we do not have significant evidence to reject the $H_0$ and claim the residuals follow a roughly normal distribution.
-
-```{r}
-#JHM KS Test
-ks.test(x = resid(model_f), y = pnorm, mean = 0, sd = 5.797549)
-```
-
-
-```{r}
-gamresid = ggplot(data = gamdataframe, aes(x = Fitted_Values, y = Residuals)) +
-                    geom_point() + geom_smooth(method = lm, color = "red") + labs(title = "GAM Residual vs Fitted")
-plot(gamresid)
-```
-
-
-$H_0:$ F(t) = G(t) for all t.
-
-$H_A:$ F(t) $\neq$ G(t) for at least one t.
-
-where F is the normal CDF of mean zero and standard deviation 5.6249 and G is the distribution of the residuals of the reduced GAM model
-
-We will be using a significance level of $\alpha = 0.05$
-
-Conditions: There is independence in the distributions and the data comes from a continuous population. For both the normal and residual distribution, we can say they are continuous. We all can assume independence. 
-
-The test-statistic, D-value, generated by the Kolmogorov-Smirnov test is 0.050011 with an associated p-value of 0.3472 At the significance level of $\alpha = 0.05$, this indicates we do not have significant evidence to reject the $H_0$ and claim the residuals follow a roughly normal distribution.
-
-```{r}
-#Gam KS Test
-ks.test(x = resid(full_gam), y = pnorm, mean = 0, sd = 5.624864)
-
-```
-
-```{r}
+```{r, include=FALSE}
 #gam
 full_gam <- gam(MP ~ s(TRB) + AST + TOV + FTA + s(PTS) + s(FG), data = nbaper36select)
 full_gam_c = predict(full_gam, type = "terms")
@@ -504,9 +395,7 @@ mp_m = mean(nbaper36select$MP)
 fullgam_plots <- cbind(nba_sub, full_gam_c, full_gam_y)
 cnn <- c(colnames(nba_sub), "trb_pred", "blk_pred", "tov_pred", "fta_pred", "pts_pred", "fg_pred","mp_pred")
 colnames(fullgam_plots) <- cnn
-```
 
-```{r}
 #creating gam plots
 plot1 <- ggplot(data = nbaper36select, aes(x = TRB, y = MP)) + 
   geom_point() + 
@@ -549,17 +438,143 @@ plot6 <- ggplot(data = nbaper36select, aes(x = FG, y = MP)) +
 #graphing gam
 
 grid.arrange(plot1, plot2, plot3, plot4, plot5, plot6, ncol = 2)
+AIC(full_gam)
+```
 
+The first GAM returned an AIC of `r AIC(full_gam)`. From the plot of the GAM, we noticed that the slopes for `TRB` and `FTA` were very flat, suggesting that these coefficients are close to zero. We attempted to fit a reduced GAM dropping these predictors from the model. The hope was that by dropping predictors and fitting a reduced model we would improve our model. 
+
+```{r, include = FALSE}
+#gam1
+full_gam1 <- gam(MP ~ AST + TOV + s(PTS) + s(FG), data = nbaper36select)
+full_gam_c1 = predict(full_gam1, type = "terms")
+full_gam_y1 <- fitted(full_gam1)
+
+fullgam_plots1 <- cbind(nba_sub, full_gam_c1, full_gam_y1)
+cnn1 <- c(colnames(nba_sub), "AST_pred", "tov_pred", "pts_pred", "fg_pred","mp_pred")
+colnames(fullgam_plots1) <- cnn1
+
+fullgam_plots1 <- cbind(fullgam_plots1, 
+                       best_ast = astplot$simp,
+                       best_tov = tovplot$simp,
+                       best_pts = ptsplot$smooth,
+                       best_fg = fgplot$smooth)
+
+#creating gam plots
+
+plot7 <- ggplot(data = nbaper36select, aes(x = AST, y = MP)) + 
+  geom_point() + 
+  geom_hline(yintercept = mp_m, linetype = 2, color = "blue") + 
+  geom_line(inherit.aes = F, size = 2, color = "red", data = fullgam_plots1,
+            aes(x = AST, y = best_ast)) +
+  geom_line(inherit.aes = F, size = 2, color = "gold", data = fullgam_plots1,
+            aes(x = AST, y = AST_pred + mp_m))
+
+plot8 <- ggplot(data = nbaper36select, aes(x = TOV, y = MP)) + 
+  geom_point() + 
+  geom_hline(yintercept = mp_m, linetype = 2, color = "blue") + 
+  geom_line(inherit.aes = F, size = 2, color = "red", data = fullgam_plots1,
+            aes(x = TOV, y = best_tov)) +
+  geom_line(inherit.aes = F, size = 2, color = "gold", data = fullgam_plots1,
+            aes(x = TOV, y = tov_pred + mp_m))
+
+plot9 <- ggplot(data = nbaper36select, aes(x = PTS, y = MP)) + 
+  geom_point() + 
+  geom_hline(yintercept = mp_m, linetype = 2, color = "blue") + 
+  geom_line(inherit.aes = F, size = 2, color = "red", data = fullgam_plots1,
+            aes(x = PTS, y = best_pts)) +
+  geom_line(inherit.aes = F, size = 2, color = "gold", data = fullgam_plots1,
+            aes(x = PTS, y = pts_pred + mp_m))
+
+plot10 <- ggplot(data = nbaper36select, aes(x = FG, y = MP)) + 
+  geom_point() + 
+  geom_hline(yintercept = mp_m, linetype = 2, color = "blue") + 
+  geom_line(inherit.aes = F, size = 2, color = "red", data = fullgam_plots1,
+            aes(x = FG, y = best_fg)) +
+  geom_line(inherit.aes = F, size = 2, color = "gold", data = fullgam_plots1,
+            aes(x = FG, y = fg_pred + mp_m))
 ```
 
 ```{r}
-full_gam1 <- gam(MP ~ s(TRB) + AST + TOV + s(PTS) + s(FG), data = nbaper36select)
-AIC(full_gam) 
+grid.arrange(plot7, plot8, plot9, plot10, ncol=2)
 AIC(full_gam1)
 ```
 
-## Model Fit and CV
+The reduced GAM is plotted above. The coefficient for `FG` still looks a little flat, but attempts to drop this predictor resulted in a worse model. Using AIC to compare the two models, we find that the reduced GAM performs better than the full GAM. The AIC for the reduced GAM is `r AIC(full_gam1)`, which is slightly lower than the AIC for the full GAM we found above.
 
+
+## Kolmogorov Smirnov Test
+
+```{r}
+# OLS KS Test Residual Plot
+mplot(ols_mod1, which = c(1))
+```
+
+```{r}
+#OLS KS Code
+ks.test(x = resid(ols_mod), y = pnorm, mean = 0, sd = 5.796699)
+```
+$H_0:$ F(t) = G(t) for all t.
+
+$H_A:$ F(t) $\neq$ G(t) for at least one t.
+
+where F is the normal CDF of mean zero and standard deviation 5.7967 and G is the distribution of the residuals of the reduced ols.
+
+We will be using a significance level of $\alpha = 0.05$
+
+Conditions: There is independence in the distributions and the data comes from a continuous population. For both the normal and residual distribution, we can say they are continuous. We all can assume independence. 
+
+The test-statistic, D-value, generated by the Kolmogorov-Smirnov test is 0.049634 with an associated p-value of 0.3562. At the significance level of $\alpha = 0.05$, this indicates we do not have significant evidence to reject the $H_0$ and claim the residuals follow a roughly normal distribution.
+
+```{r}
+jhmresid = ggplot(data = jhmdataframe, aes(x = Fitted_Values, y = Residuals)) +
+                    geom_point() + geom_smooth(method = lm, color = "red") + labs(title = "JHM Residual vs Fitted")
+
+plot(jhmresid)
+```
+
+$H_0:$ F(t) = G(t) for all t.
+
+$H_A:$ F(t) $\neq$ G(t) for at least one t.
+
+where F is the normal CDF of mean zero and standard deviation 5.7975 and G is the distribution of the residuals of the reduced JHM model
+
+We will be using a significance level of $\alpha = 0.05$
+
+Conditions: There is independence in the distributions and the data comes from a continuous population. For both the normal and residual distribution, we can say they are continuous. We all can assume independence. 
+
+The test-statistic, D-value, generated by the Kolmogorov-Smirnov test is 0.046003 with an associated p-value of 0.4511 At the significance level of $\alpha = 0.05$, this indicates we do not have significant evidence to reject the $H_0$ and claim the residuals follow a roughly normal distribution.
+
+```{r}
+#JHM KS Test
+ks.test(x = resid(model_f), y = pnorm, mean = 0, sd = 5.797549)
+```
+
+```{r}
+gamresid = ggplot(data = gamdataframe, aes(x = Fitted_Values, y = Residuals)) +
+                    geom_point() + geom_smooth(method = lm, color = "red") + labs(title = "GAM Residual vs Fitted")
+plot(gamresid)
+```
+
+$H_0:$ F(t) = G(t) for all t.
+
+$H_A:$ F(t) $\neq$ G(t) for at least one t.
+
+where F is the normal CDF of mean zero and standard deviation 5.6249 and G is the distribution of the residuals of the reduced GAM model
+
+We will be using a significance level of $\alpha = 0.05$
+
+Conditions: There is independence in the distributions and the data comes from a continuous population. For both the normal and residual distribution, we can say they are continuous. We all can assume independence. 
+
+The test-statistic, D-value, generated by the Kolmogorov-Smirnov test is 0.050011 with an associated p-value of 0.3472 At the significance level of $\alpha = 0.05$, this indicates we do not have significant evidence to reject the $H_0$ and claim the residuals follow a roughly normal distribution.
+
+```{r}
+#Gam KS Test
+ks.test(x = resid(full_gam), y = pnorm, mean = 0, sd = 5.624864)
+
+```
+
+
+## Model Fit and CV
 
 We also decided to see the fit statistics for the three models, as well as running a 5-fold crossvalidation on the fit statistics. Using that, we got the following fit statistics.
 
@@ -573,6 +588,7 @@ kable(round(out10a,4))%>% kable_styling(position = "center")
 ```
 
 Overall, all the values indicate low predictive power. Interestingly, the GAM displays higher values in both $R^2$ and $L1_{prop}$ when compared to the OLS and JHM, yet displays a lower value for $R^2_{Adj}$ wheen compared to the other two models. This seems to indicate the GAM is overfit. This issue along with the normality of the residuals as shown in the Kolmogorov-Smirnov test seem to indicate that the OLS model is best suited for prediction.
+
 
 ## Conclusion
 
